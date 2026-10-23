@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# BOB runtime artifacts (PROJECT.md & TEAM_PLAN.md Section 4)
+.bob/
+**/.bob/cache/
+**/.bob/report.*
+**/.bob/log.jsonl
+*.gguf
+
+# Exception: keep demo config tracked
+!demo/workdir/.bob/config.yaml
