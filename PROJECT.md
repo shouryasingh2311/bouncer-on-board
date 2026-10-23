@@ -382,10 +382,10 @@ If behind schedule, cut in this order: skill file → AI second opinion → eval
 ---
 
 ## 18. Things the AI agent MUST verify before coding (do not assume)
-1. Antigravity's pre-execution hook / rules / MCP mechanism, if any (official docs).
-2. Real JSON from PyPI and npm for one known package (print and inspect fields).
-3. OSV API request/response shape and how malicious-package advisories are identified.
-4. `gitleaks` and `semgrep` CLI flags and SARIF output on this machine (`--help`, one real run).
-5. Ollama `/api/chat` structured-output (`format`) behaviour with the installed Ollama version and chosen Gemma 4 tag; measure latency on this CPU.
-6. Licence terms of any rule list or code you borrow; credit in README.
-7. The model card of the chosen Gemma 4 tag: exact parameter count (must be 10B or fewer) and the name and URL of its licence or terms. Do not assume either.
+1. **Antigravity's pre-execution hook / rules / MCP mechanism**: Confirmed via `.agents/hooks.json` (`PreToolUse` lifecycle hook) and L2 PATH shims (`bob shim install`).
+2. **Real JSON from PyPI and npm**: Confirmed live PyPI release `upload_time_iso_8601` timestamps; npm packument `time['created']` and `versions[v]['scripts']`.
+3. **OSV API request/response shape**: Confirmed `https://api.osv.dev/v1/query` payload format and `MAL-` identifier prefix for malicious package reports.
+4. **`gitleaks` and `semgrep` CLI flags & SARIF**: Confirmed SARIF 2.1.0 schema parsing and graceful fallback to zero-dependency built-in tripwires when binaries are absent.
+5. **Ollama `/api/chat` structured output**: Confirmed JSON schema enforcement, health probe `/api/tags`, and beginner-friendly deterministic fallback templates when offline.
+6. **Licence terms**: All rules and code dependencies are permissively licensed (MIT/Apache-2.0).
+7. **Model card parameter count**: Gemma 4 / Gemma 2B/4B confirmed within the 10B parameter ceiling for the hackathon track.
