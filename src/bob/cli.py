@@ -23,6 +23,8 @@ from bob.adapters.shim import (
     uninstall_shims,
 )
 from bob.ai.triage import triage_findings
+from bob.banner import print_banner
+from bob.setup import run_setup_wizard
 from bob.cmdparse import extract_install_intents, parse_pkg_and_version
 from bob.config import load_config
 from bob.guards.injection import (
@@ -43,7 +45,7 @@ from bob.scan.runners import run_all_scanners
 app = typer.Typer(
     name="bob",
     help="Zero-Trust IDE Agent Firewall & Pre-Deploy Security Gatekeeper",
-    no_args_is_help=True,
+    no_args_is_help=False,
 )
 console = Console(soft_wrap=True)
 err_console = Console(stderr=True, soft_wrap=True)
@@ -55,8 +57,9 @@ def version_callback(value: bool) -> None:
         raise typer.Exit(code=0)
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     version: Optional[bool] = typer.Option(
         None,
         "--version",
@@ -67,12 +70,20 @@ def main(
     ),
 ) -> None:
     """Zero-Trust IDE Agent Firewall & Pre-Deploy Security Gatekeeper."""
-    pass
+    if ctx.invoked_subcommand is None:
+        if sys.stdout.isatty():
+            print_banner(console)
+        console.print(ctx.get_help())
+        if sys.stdout.isatty():
+            console.print("\n[dim]Tip: Run [bold]bob setup[/bold] to configure local Gemma/Ollama or cloud API keys.[/dim]\n")
+        raise typer.Exit(code=0)
 
 
 @app.command()
 def doctor() -> None:
     """Report available scanners, Ollama connection, configured model, and system environment."""
+    if sys.stdout.isatty():
+        print_banner(console, include_subtitle=False)
     cfg = load_config()
 
     table = Table(title="[bold cyan]BOB System Diagnostics (Doctor)[/bold cyan]")
@@ -165,6 +176,19 @@ def doctor() -> None:
     console.print(
         "\n[dim]Note: External tools and Ollama are optional. BOB operates fully in deterministic mode without them.[/dim]"
     )
+
+    if (not ollama_ok or not model_found) and sys.stdin.isatty() and sys.stdout.isatty():
+        from rich.prompt import Confirm
+        if Confirm.ask("\n[bold cyan]Run interactive AI setup assistant now?[/bold cyan]", default=False, console=console):
+            run_setup_wizard(console)
+
+    raise typer.Exit(code=0)
+
+
+@app.command(name="setup")
+def setup() -> None:
+    """Interactive onboarding assistant for local Gemma/Ollama or API keys."""
+    run_setup_wizard(console)
     raise typer.Exit(code=0)
 
 
