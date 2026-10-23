@@ -6,27 +6,16 @@ import sys
 from rich.console import Console
 
 BOB_BANNER_ASCII = r"""
-  ____   ____  ____         .-.   .-.                 _...._       
- | __ ) / __ \| __ )       /  /  /  /               /`  __  `\     
- |  _ \| |  | |  _ \     .-'--'--'--.              |  (||||)  |    
- | |_) | |__| | |_) |   /   _.-  -._ \              \  '--'  /     
- |____/ \____/|____/   |   ( -o) (-o )|              \ '---' |     
-                       |      (__)    |     _..._     |      |     
-  BOUNCER ON BOARD     /   .----------. \  /` .-. `\   |      |     
- ===================   |   /  .::..::.  \ ||  (   )  |  |      |     
- Zero-Trust IDE        |  (    .----.    )| \  '-'  /   |      |     
- Agent Firewall        |   \   `----'   / |  '-----'   /      /      
-                        \   '--.____.--' /            /      /       
- (*) Package Gate      /`\==============/`\          /      /        
- (*) Terminal Guard    /  \_/\_/\_/\_/\_   \        /      /         
- (*) Gemma/Ollama AI   /   /              \   \      /      /          
- (*) Multi-IDE Lock    |  /   .-.    .-.   \   \    /      /           
-                       | |   /   \  /   \   |   '--'      /            
- (v0.1.0 - Active)     | |  |     ||     |  |        '---'             
- -------------------   '--'  '---'  '---'   '------'                   
+ [====][====]-.       [====][====][====]       [====][====]-. 
+ |[||]   [||]||       |[||]        [||]|       |[||]   [||]|| 
+ [====][====]-+       |[||]        [||]|       [====][====]-+ 
+ |[||]   [||]||       |[||]        [||]|       |[||]   [||]|| 
+ [====][====]-'       [====][====][====]       [====][====]-' 
+  |________|              |________|            |________|    
 """
 
-SUBTITLE = "Bouncer On Board - Zero-Trust IDE Agent Firewall"
+SUBTITLE = "bouncer-on-board"
+TAGLINE = "I'm Gate keeping"
 
 
 def print_banner(console: Console, include_subtitle: bool = True) -> None:
@@ -35,4 +24,5 @@ def print_banner(console: Console, include_subtitle: bool = True) -> None:
         return
     console.print(f"[bold cyan]{BOB_BANNER_ASCII.strip(chr(10) + chr(13))}[/bold cyan]")
     if include_subtitle:
-        console.print(f"[bold white]{SUBTITLE}[/bold white]\n")
+        console.print(f"               [bold white]-- {SUBTITLE} --[/bold white]")
+        console.print(f"                 [dim cyan]\"{TAGLINE}\"[/dim cyan]\n")

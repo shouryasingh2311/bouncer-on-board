@@ -15,8 +15,8 @@ runner = CliRunner()
 
 def test_ascii_banner_content() -> None:
     assert "____" in BOB_BANNER_ASCII
-    assert "Bouncer On Board" in SUBTITLE
-    assert "(||||)" in BOB_BANNER_ASCII  # Bulldog mascot flexed fist
+    assert "bouncer-on-board" in SUBTITLE
+    assert "[====]" in BOB_BANNER_ASCII  # Circuit chip package
     for line in BOB_BANNER_ASCII.splitlines():
         assert len(line) <= 80, f"Line too long: {len(line)} chars"
         for ch in line:
