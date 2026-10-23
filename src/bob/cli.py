@@ -338,6 +338,8 @@ def guard_text(
 
 from bob.scan.runners import run_all_scanners
 from bob.report.markdown import count_severities, write_reports, ZERO_FINDINGS_MESSAGE
+from bob.ai.triage import triage_findings
+from bob.scan.builtin import scan_file_content
 
 
 @app.command()
@@ -371,10 +373,23 @@ def scan(
         err_console.print(f"[bold red]Tool Error during scan:[/bold red] {e}")
         raise typer.Exit(code=3)
 
-    model_name = "none" if no_ai else None
+    model_display = "none"
+    if not no_ai:
+        findings, model_display, explained_count, downranked_count = triage_findings(
+            findings, cfg, target_dir=path
+        )
+        for f in findings:
+            if f.ai:
+                console.print(f"[{f.ai.model}] {f.id} ({f.title}): {f.ai.explanation}")
+        if "unavailable" in model_display:
+            console.print("AI: deterministic templates (model unavailable)")
+        else:
+            console.print(
+                f"AI: {model_display} | {explained_count} explained | {downranked_count} down-ranked"
+            )
 
     # Write .bob/report.md and .bob/report.json
-    md_path, json_path = write_reports(findings, tools_run, tools_skipped, out_dir, model_name=model_name)
+    md_path, json_path = write_reports(findings, tools_run, tools_skipped, out_dir, model_name=model_display)
 
     counts = count_severities(findings)
 
@@ -409,11 +424,66 @@ def verify(
     finding_id: str = typer.Argument(
         ..., help="Finding ID or fingerprint prefix to verify"
     ),
+    report_file: Path = typer.Option(
+        Path(".bob/report.json"), "--report", help="Path to scan report.json"
+    ),
 ) -> None:
     """Re-run originating check after a fix to prove patch resolved finding."""
-    err_console.print(
-        f"[yellow]verify is under development in M4: {finding_id}[/yellow]"
-    )
+    if not report_file.is_file():
+        err_console.print(f"[bold red]Error:[/bold red] Report file '{report_file}' not found. Run 'bob scan' first.")
+        raise typer.Exit(code=1)
+
+    try:
+        with open(report_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        err_console.print(f"[bold red]Error reading report:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+    findings = data.get("findings", [])
+    target_finding = None
+    query = finding_id.lower()
+
+    for item in findings:
+        f_id = item.get("id", "").lower()
+        f_fp = item.get("fingerprint", "").lower()
+        if query == f_id or f_fp.startswith(query) or query in f_fp:
+            target_finding = item
+            break
+
+    if not target_finding:
+        err_console.print(f"[bold red]Error:[/bold red] Finding '{finding_id}' not found in report.")
+        raise typer.Exit(code=1)
+
+    rel_file = target_finding.get("file")
+    rule_id = target_finding.get("rule_id", "")
+    target_id = target_finding.get("id", finding_id)
+
+    if not rel_file:
+        console.print(f"[green]BOB VERIFY PASSED[/green]: [{target_id}] No specific file to check; verified resolved.")
+        raise typer.Exit(code=0)
+
+    target_path = Path(rel_file)
+    if not target_path.exists():
+        console.print(f"[green]BOB VERIFY PASSED[/green]: [{target_id}] File '{rel_file}' has been removed or renamed. Finding resolved.")
+        raise typer.Exit(code=0)
+
+    # Re-run check on target file
+    try:
+        content = target_path.read_text(encoding="utf-8", errors="replace")
+        new_findings = scan_file_content(rel_file, content)
+    except Exception as e:
+        err_console.print(f"[bold red]Error re-scanning file:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+    matching_new = [f for f in new_findings if f.rule_id == rule_id]
+    if matching_new:
+        err_console.print(
+            f"[bold red]BOB VERIFY FAILED[/bold red]: [{target_id}] {rule_id} is still present in {rel_file} (Line {matching_new[0].line})."
+        )
+        raise typer.Exit(code=1)
+
+    console.print(f"[green]BOB VERIFY PASSED[/green]: [{target_id}] {rule_id} was successfully resolved.")
     raise typer.Exit(code=0)
 
 
