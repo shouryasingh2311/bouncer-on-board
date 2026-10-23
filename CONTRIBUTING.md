@@ -10,7 +10,7 @@ BOB targets **Python >= 3.10** and works natively across Windows (PowerShell/CMD
 
 ```bash
 # Clone the repository
-git clone https://github.com/<owner>/bouncer-on-board.git
+git clone https://github.com/shouryasingh2311/bouncer-on-board.git
 cd bouncer-on-board
 
 # Create and activate virtual environment
