@@ -29,3 +29,6 @@ bob = "bob.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+bob = ["data/*.json", "data/rules/*.yaml"]
