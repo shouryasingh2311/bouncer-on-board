@@ -22,6 +22,8 @@ class Config:
     fail_gate_on: List[str] = field(
         default_factory=lambda: ["critical", "high"]
     )
+    api_key: Optional[str] = None
+    ai_provider: str = "ollama"  # ollama | cloud | deterministic
 
     def get_pypi_base_url(self) -> str:
         """Get base PyPI URL taking into account registry overrides."""
@@ -94,7 +96,18 @@ def load_config(config_path: Optional[Path] = None) -> Config:
                 str(s).lower()
                 for s in data.get("fail_gate_on", ["critical", "high"])
             ],
+            api_key=data.get("api_key"),
+            ai_provider=str(data.get("ai_provider", Config.ai_provider)),
         )
     except Exception:
         # Fall back to default config if file is unparseable
         return Config()
+
+
+def save_config(cfg: Config, path: Optional[Path] = None) -> Path:
+    """Save configuration to .bob/config.yaml."""
+    target_path = path or (Path.cwd() / ".bob" / "config.yaml")
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(target_path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(cfg.to_dict(), f, sort_keys=False)
+    return target_path
