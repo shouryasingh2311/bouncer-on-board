@@ -53,7 +53,8 @@ def test_setup_wizard_deterministic_choice(tmp_path: Path, monkeypatch) -> None:
     mock_console = MagicMock()
     cfg_path = tmp_path / "config.yaml"
 
-    monkeypatch.setattr("bob.setup.Prompt.ask", lambda *args, **kwargs: "3")
+    responses = iter(["3", "5"])
+    monkeypatch.setattr("bob.setup.Prompt.ask", lambda *args, **kwargs: next(responses))
     monkeypatch.setattr("bob.setup.load_config", lambda: Config())
     monkeypatch.setattr("bob.setup.save_config", lambda c: save_config(c, cfg_path))
 
@@ -68,7 +69,7 @@ def test_setup_wizard_cloud_choice(tmp_path: Path, monkeypatch) -> None:
     mock_console = MagicMock()
     cfg_path = tmp_path / "config.yaml"
 
-    responses = iter(["2", "gemini", "my-secret-key", "gemini-1.5-flash"])
+    responses = iter(["2", "gemini", "my-secret-key", "gemini-1.5-flash", "5"])
     monkeypatch.setattr("bob.setup.Prompt.ask", lambda *args, **kwargs: next(responses))
     monkeypatch.setattr("bob.setup.load_config", lambda: Config())
     monkeypatch.setattr("bob.setup.save_config", lambda c: save_config(c, cfg_path))

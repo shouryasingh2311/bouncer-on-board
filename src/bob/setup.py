@@ -15,6 +15,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 
+from bob.adapters.ide import protect_workspace
 from bob.banner import print_banner
 from bob.config import Config, load_config, save_config
 
@@ -226,5 +227,48 @@ def run_setup_wizard(console: Console) -> None:
         cfg_path = save_config(cfg)
         console.print(f"[bold green]Configuration saved to {cfg_path}[/bold green]")
         console.print("[green]BOB will run in zero-token deterministic mode using built-in AST & tripwire rules.[/green]")
+
+    # Step 2: IDE & Coding Agent Protection
+    console.print(
+        Panel(
+            "[bold white]Step 2: IDE & Coding Agent Protection[/bold white]\n\n"
+            "BOB can automatically configure your IDE or coding agent so tool commands\n"
+            "and package downloads are intercepted in real-time before execution.\n\n"
+            "[bold cyan]Select your IDE / Agent environment to protect:[/bold cyan]\n"
+            "  [bold cyan]1[/bold cyan] Cursor / VS Code / Windsurf ([green]Auto-configures terminal interceptor & shims[/green])\n"
+            "  [bold cyan]2[/bold cyan] Google Antigravity IDE ([green]Registers native PreToolUse lifecycle hook[/green])\n"
+            "  [bold cyan]3[/bold cyan] Claude Code / Terminal Agents ([green]Installs global PATH shims for pip, npm, uv[/green])\n"
+            "  [bold cyan]4[/bold cyan] All of the Above ([green]Complete Protection • Recommended[/green])\n"
+            "  [bold cyan]5[/bold cyan] Skip IDE setup (CLI commands only)",
+            title="[bold cyan]IDE Integration[/bold cyan]",
+            border_style="cyan",
+        )
+    )
+
+    ide_choice = Prompt.ask(
+        "Choose IDE protection option",
+        choices=["1", "2", "3", "4", "5"],
+        default="4",
+        console=console,
+    )
+
+    if ide_choice != "5":
+        target_path_str = Prompt.ask(
+            "Enter workspace/project directory to protect",
+            default=".",
+            console=console,
+        )
+        target_path = Path(target_path_str).resolve()
+        mapping = {
+            "1": "cursor",
+            "2": "antigravity",
+            "3": "claude",
+            "4": "all",
+        }
+        chosen_ide = mapping.get(ide_choice, "all")
+        result = protect_workspace(target_path, chosen_ide)
+        console.print(f"\n[bold green]✓ Protected workspace: {result['workspace']}[/bold green]")
+        for action in result["actions"]:
+            console.print(f"  [green]•[/green] {action}")
 
     console.print("\n[dim]Run [bold]bob doctor[/bold] to check system status, or [bold]bob scan .[/bold] to run a pre-deploy audit.[/dim]\n")

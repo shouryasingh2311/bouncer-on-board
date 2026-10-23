@@ -634,5 +634,19 @@ def allow(
     raise typer.Exit(code=0)
 
 
+@app.command(name="protect")
+def protect(
+    path: Path = typer.Argument(Path("."), help="Path to project/workspace directory to protect"),
+    ide: str = typer.Option("all", "--ide", help="Target IDE: all, cursor, vscode, antigravity, claude"),
+) -> None:
+    """Configure automated interception hooks for IDEs and coding agents."""
+    from bob.adapters.ide import protect_workspace
+    result = protect_workspace(path, ide)
+    console.print(f"[bold green]✓ Protected workspace:[/bold green] {result['workspace']}")
+    for action in result["actions"]:
+        console.print(f"  [green]•[/green] {action}")
+    raise typer.Exit(code=0)
+
+
 if __name__ == "__main__":
     app()
