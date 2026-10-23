@@ -1,0 +1,41 @@
+- id: INJ-001
+  title: Instruction override phrase
+  severity: high
+  category: injection
+  regex: '(?i)ignore\s+(all\s+)?(previous|prior|above)\s+instructions'
+  explanation: Attempts to override previously provided system instructions or developer boundaries.
+
+- id: INJ-010
+  title: Invisible/zero-width or Unicode tag characters
+  severity: high
+  category: injection
+  regex: '[\u200b-\u200f\u2060\ufeff\U000E0000-\U000E007F]'
+  explanation: Hidden invisible or unicode tag characters commonly used to conceal prompt injection from human reviewers.
+
+- id: INJ-011
+  title: Bidirectional control characters (Trojan Source style)
+  severity: high
+  category: injection
+  regex: '[\u202a-\u202e\u2066-\u2069]'
+  explanation: Bidirectional unicode override characters that visually reorder text in editors while executing differently.
+
+- id: INJ-020
+  title: Instruction to send secrets or env data to a URL
+  severity: critical
+  category: injection
+  regex: '(?i)(send|post|upload|exfiltrate).{0,60}(\.env|api[_ -]?key|secret|token|credential).{0,80}https?://'
+  explanation: Explicit instruction directing an AI agent to exfiltrate environment secrets or API credentials to an external URL.
+
+- id: INJ-030
+  title: System prompt leakage request
+  severity: high
+  category: injection
+  regex: '(?i)(print|output|display|show|reveal|repeat)\s+(your|the)?\s+(initial|system|hidden)\s+(prompt|instructions|directive)'
+  explanation: Attempt to force the AI agent to output its hidden system prompt or confidential configuration.
+
+- id: INJ-040
+  title: Roleplay jailbreak attempt
+  severity: high
+  category: injection
+  regex: '(?i)(you are now DAN|ignore all safety|do anything now|unrestricted mode)'
+  explanation: Classic persona jailbreak attempting to bypass safety and ethical constraints.
