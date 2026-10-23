@@ -336,6 +336,10 @@ def guard_text(
     raise typer.Exit(code=0)
 
 
+from bob.scan.runners import run_all_scanners
+from bob.report.markdown import count_severities, write_reports, ZERO_FINDINGS_MESSAGE
+
+
 @app.command()
 def scan(
     path: Path = typer.Argument(
@@ -354,9 +358,49 @@ def scan(
     """Run pre-deploy scan with deterministic tools and local AI triage."""
     if cloud:
         console.print("[dim]Note: --cloud is not implemented; using local/deterministic mode.[/dim]")
-    err_console.print(
-        f"[yellow]scan is under development in M3/M4: {path}[/yellow]"
-    )
+
+    if not path.exists():
+        err_console.print(f"[bold red]Error:[/bold red] Target path '{path}' does not exist.")
+        raise typer.Exit(code=3)
+
+    cfg = load_config()
+
+    try:
+        findings, tools_run, tools_skipped = run_all_scanners(path, cfg)
+    except Exception as e:
+        err_console.print(f"[bold red]Tool Error during scan:[/bold red] {e}")
+        raise typer.Exit(code=3)
+
+    model_name = "none" if no_ai else None
+
+    # Write .bob/report.md and .bob/report.json
+    md_path, json_path = write_reports(findings, tools_run, tools_skipped, out_dir, model_name=model_name)
+
+    counts = count_severities(findings)
+
+    table = Table(title=f"[bold cyan]BOB Pre-Deploy Scan Summary ({path})[/bold cyan]")
+    table.add_column("Severity", style="bold")
+    table.add_column("Count")
+    for sev in ("critical", "high", "medium", "low", "info"):
+        color = "red" if sev in ("critical", "high") else ("yellow" if sev == "medium" else "green")
+        table.add_row(f"[{color}]{sev.upper()}[/{color}]", str(counts[sev]))
+
+    console.print(table)
+    console.print(f"[dim]Reports written to {md_path} and {json_path}[/dim]")
+
+    if not findings:
+        console.print(f"[green]{ZERO_FINDINGS_MESSAGE}[/green]")
+        raise typer.Exit(code=0)
+
+    # Fail gate if any finding matches fail_gate_on (default: critical, high)
+    failing_findings = [f for f in findings if f.severity.lower() in cfg.fail_gate_on]
+    if failing_findings:
+        err_console.print(
+            f"\n[bold red]BOB SCAN GATE FAILED[/bold red]: {len(failing_findings)} issue(s) matching fail policy {cfg.fail_gate_on}."
+        )
+        raise typer.Exit(code=1)
+
+    console.print("\n[green]BOB SCAN GATE PASSED[/green] (no critical or high findings).")
     raise typer.Exit(code=0)
 
 
