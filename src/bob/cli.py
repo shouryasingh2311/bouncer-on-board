@@ -186,6 +186,25 @@ def check_install(
         raise typer.Exit(code=0)
 
 
+from datetime import datetime, timezone
+from bob.guards.sensitive_paths import (
+    check_command_sensitive_paths,
+    check_self_protection,
+)
+from bob.cmdparse import extract_install_intents
+
+
+def append_audit_log(entry: dict) -> None:
+    """Append decision entry to .bob/log.jsonl."""
+    try:
+        log_dir = Path(".bob")
+        log_dir.mkdir(parents=True, exist_ok=True)
+        with open(log_dir / "log.jsonl", "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+
+
 @app.command()
 def intercept(
     adapter: str = typer.Option(
@@ -196,9 +215,110 @@ def intercept(
     ),
 ) -> None:
     """Interception hook entrypoint for IDE agents and terminal shims."""
-    err_console.print(
-        f"[yellow]intercept is under development in M1/M2 (adapter: {adapter})[/yellow]"
-    )
+    cfg = load_config()
+
+    cmd_str = cmd
+    if cmd_str is None:
+        if not sys.stdin.isatty():
+            raw_stdin = sys.stdin.read().strip()
+            if raw_stdin.startswith("{") and "toolCall" in raw_stdin:
+                try:
+                    payload = json.loads(raw_stdin)
+                    cmd_str = (
+                        payload.get("toolCall", {})
+                        .get("args", {})
+                        .get("CommandLine", "")
+                    )
+                except Exception:
+                    cmd_str = raw_stdin
+            else:
+                cmd_str = raw_stdin
+
+    if not cmd_str:
+        if adapter == "antigravity":
+            console.print(json.dumps({"decision": "allow"}))
+        raise typer.Exit(code=0)
+
+    # 1. Check self-protection
+    self_prot_hit = check_self_protection(cmd_str)
+    if self_prot_hit:
+        reason = f"{self_prot_hit.title}. Modifying BOB configuration or allowlist is prohibited."
+        append_audit_log({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "cmd": cmd_str,
+            "action": "block",
+            "rule_id": self_prot_hit.rule_id,
+            "reason": reason,
+        })
+        if adapter == "antigravity":
+            console.print(json.dumps({"decision": "deny", "reason": f"BOB BLOCKED [{self_prot_hit.id}] rule={self_prot_hit.rule_id} cmd={cmd_str}. {reason}"}))
+        else:
+            err_console.print(f"BOB BLOCKED [{self_prot_hit.id}] rule={self_prot_hit.rule_id} cmd={cmd_str}")
+            err_console.print(f"Reason: {reason}")
+            err_console.print("Do: do not attempt to weaken or reconfigure BOB.")
+        raise typer.Exit(code=2)
+
+    # 2. Check sensitive paths
+    sens_hit = check_command_sensitive_paths(cmd_str, cfg)
+    if sens_hit:
+        reason = f"{sens_hit.title}. Reading or writing sensitive credential paths is prohibited."
+        append_audit_log({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "cmd": cmd_str,
+            "action": "block",
+            "rule_id": sens_hit.rule_id,
+            "reason": reason,
+        })
+        if adapter == "antigravity":
+            console.print(json.dumps({"decision": "deny", "reason": f"BOB BLOCKED [{sens_hit.id}] rule={sens_hit.rule_id} target={sens_hit.file}. {reason}"}))
+        else:
+            err_console.print(f"BOB BLOCKED [{sens_hit.id}] rule={sens_hit.rule_id} target={sens_hit.file}")
+            err_console.print(f"Reason: {reason}")
+            err_console.print("Do: remove references to sensitive paths from your command.")
+        raise typer.Exit(code=2)
+
+    # 3. Check install intents
+    intents = extract_install_intents(cmd_str)
+    for intent in intents:
+        if intent.is_unverifiable:
+            err_console.print(f"BOB WARN [BOB-0000] rule=PKG-UNVERIFIABLE package={intent.package}: direct URL/local archive cannot be verified statically.")
+            continue
+
+        decision = evaluate_package(intent.ecosystem, intent.package, intent.version, cfg)
+        first_finding = decision.findings[0] if decision.findings else None
+        finding_id = first_finding.id if first_finding else "BOB-0001"
+        rule_id = first_finding.rule_id if first_finding else "PKG-GATE"
+        reason_text = decision.reasons[0] if decision.reasons else "Package gate policy check."
+
+        append_audit_log({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "cmd": cmd_str,
+            "action": decision.action,
+            "rule_id": rule_id,
+            "reason": reason_text,
+        })
+
+        if decision.action == "block":
+            if adapter == "antigravity":
+                console.print(json.dumps({"decision": "deny", "reason": f"BOB BLOCKED [{finding_id}] rule={rule_id} package={intent.package}. {reason_text}"}))
+            else:
+                err_console.print(f"BOB BLOCKED [{finding_id}] rule={rule_id} package={intent.package}")
+                err_console.print(f"Reason: {reason_text}")
+                err_console.print("Do: remove it, ask the user, or pick a verified package. Do not retry this install.")
+            raise typer.Exit(code=2)
+        elif decision.action == "warn":
+            err_console.print(f"BOB WARN [{finding_id}] rule={rule_id} package={intent.package}: {reason_text}")
+
+    # 4. Clean command
+    append_audit_log({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "cmd": cmd_str,
+        "action": "allow",
+        "rule_id": "CLEAN",
+        "reason": "Command allowed.",
+    })
+    if adapter == "antigravity":
+        console.print(json.dumps({"decision": "allow"}))
     raise typer.Exit(code=0)
 
 
