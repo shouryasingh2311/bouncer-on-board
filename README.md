@@ -57,7 +57,7 @@ Vibe-coding agents ship fast, but they blindly install hallucinated packages, tr
 ### Windows (PowerShell)
 ```powershell
 # (Run once if script execution is restricted: Set-ExecutionPolicy -Scope Process Bypass)
-git clone https://github.com/<owner>/bouncer-on-board.git; cd bouncer-on-board
+git clone https://github.com/shouryasingh2311/bouncer-on-board.git; cd bouncer-on-board
 python -m venv .venv; .venv\Scripts\Activate.ps1
 pip install -e .
 bob doctor
@@ -67,7 +67,7 @@ bob scan demo/vulnerable_app --no-ai
 
 ### macOS / Linux (Bash)
 ```bash
-git clone https://github.com/<owner>/bouncer-on-board.git && cd bouncer-on-board
+git clone https://github.com/shouryasingh2311/bouncer-on-board.git && cd bouncer-on-board
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 bob doctor
