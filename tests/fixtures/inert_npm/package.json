@@ -1,0 +1,12 @@
+{
+  "name": "demo-npm-evil",
+  "version": "1.0.0",
+  "description": "DECOY inert package for BOB static inspection tests",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "node postinstall.js"
+  },
+  "keywords": ["decoy", "test"],
+  "author": "BOB Test Suite",
+  "license": "MIT"
+}
