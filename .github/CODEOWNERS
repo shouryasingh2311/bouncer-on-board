@@ -1,0 +1,34 @@
+# CODEOWNERS for BOB (bouncer-on-board)
+# Each role owns and reviews only their designated paths to prevent merge conflicts.
+# Replace placeholder GitHub handles with real usernames upon repo onboarding.
+
+# CORE (WYTE - Lead Engineer / Repo Owner)
+/src/                             @<core-gh>
+/tests/unit/                      @<core-gh>
+/pyproject.toml                   @<core-gh>
+/PROJECT.md                       @<core-gh>
+/.github/workflows/               @<core-gh>
+
+# QA-DEMO (Person 2 - Demo Scripts, Fixtures & Integration Tests)
+/demo/                            @<demo-gh>
+/eval/                            @<demo-gh>
+/tests/fixtures/                  @<demo-gh>
+/tests/integration/               @<demo-gh>
+
+# DOCS-A (Person 3 - README Lead, Architecture & Visuals)
+/README.md                        @<docsa-gh>
+/docs/                            @<docsa-gh>
+/skills/                          @<docsa-gh>
+
+# DOCS-B (Person 4 - Legal Hygiene, Community & Submission)
+/LICENSE                          @<docsb-gh>
+/THIRD_PARTY_NOTICES.md           @<docsb-gh>
+/CONTRIBUTING.md                  @<docsb-gh>
+/SECURITY.md                      @<docsb-gh>
+/CODE_OF_CONDUCT.md               @<docsb-gh>
+/SUBMISSION.md                    @<docsb-gh>
+/.github/ISSUE_TEMPLATE/          @<docsb-gh>
+/.github/pull_request_template.md @<docsb-gh>
+/.github/CODEOWNERS               @<docsb-gh>
+/.gitignore                       @<docsb-gh>
+/.gitattributes                   @<docsb-gh>
