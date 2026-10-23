@@ -12,7 +12,6 @@ from typing import List, Optional, Tuple
 
 from bob.config import Config
 from bob.models import Finding
-from bob.pkg.osv import query_osv
 from bob.scan.builtin import scan_directory_builtin
 from bob.scan.dedupe import deduplicate_findings, load_bobignore_patterns
 from bob.scan.sarif import parse_sarif_content, parse_sarif_file
