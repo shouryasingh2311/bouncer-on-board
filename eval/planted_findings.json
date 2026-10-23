@@ -1,0 +1,92 @@
+{
+  "project": "BOB (bouncer-on-board) Vulnerable App Evaluation Benchmark",
+  "app_path": "demo/vulnerable_app",
+  "planted_true_positives": [
+    {
+      "id": "PLANTED-TP-01",
+      "file": "config.py",
+      "category": "secret",
+      "title": "OpenAI API Key in config.py",
+      "expected_severity": "high"
+    },
+    {
+      "id": "PLANTED-TP-02",
+      "file": "config.py",
+      "category": "secret",
+      "title": "AWS Secret Access Key in config.py",
+      "expected_severity": "critical"
+    },
+    {
+      "id": "PLANTED-TP-03",
+      "file": "config.py",
+      "category": "config",
+      "title": "Debug mode enabled in production config",
+      "expected_severity": "medium"
+    },
+    {
+      "id": "PLANTED-TP-04",
+      "file": ".env",
+      "category": "secret",
+      "title": "Committed .env file containing credentials",
+      "expected_severity": "critical"
+    },
+    {
+      "id": "PLANTED-TP-05",
+      "file": "app.py",
+      "category": "config",
+      "title": "Permissive Wildcard CORS Header (*)",
+      "expected_severity": "medium"
+    },
+    {
+      "id": "PLANTED-TP-06",
+      "file": "app.py",
+      "category": "code",
+      "title": "Remote code execution via eval on request data",
+      "expected_severity": "critical"
+    },
+    {
+      "id": "PLANTED-TP-07",
+      "file": "app.py",
+      "category": "code",
+      "title": "String-formatted SQL query injection",
+      "expected_severity": "high"
+    },
+    {
+      "id": "PLANTED-TP-08",
+      "file": "app.py",
+      "category": "code",
+      "title": "Disabled TLS certificate verification",
+      "expected_severity": "medium"
+    },
+    {
+      "id": "PLANTED-TP-09",
+      "file": "frontend/app.js",
+      "category": "secret",
+      "title": "Internal API secret bundled into client-side JS",
+      "expected_severity": "high"
+    }
+  ],
+  "planted_decoys": [
+    {
+      "id": "DECOY-01",
+      "file": "tests/test_dummy.py",
+      "category": "secret",
+      "title": "Mock secret in unit test suite",
+      "expected_ai_verdict": "likely_false_positive"
+    },
+    {
+      "id": "DECOY-02",
+      "file": "docs/example.py",
+      "category": "secret",
+      "title": "Documented placeholder token in documentation example",
+      "expected_ai_verdict": "likely_false_positive"
+    },
+    {
+      "id": "DECOY-03",
+      "file": "tests/fixtures/sample_key.txt",
+      "category": "secret",
+      "title": "Sample test fixture key file",
+      "expected_ai_verdict": "likely_false_positive"
+    }
+  ]
+}
