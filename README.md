@@ -1,17 +1,10 @@
+<p align="center">
+  <img src="docs/assets/banner.png" alt="BOB — Bouncer-on-Board Banner" width="100%">
+</p>
+
 # BOB (bouncer-on-board)
 
 > **Zero-Trust IDE Agent Firewall & Pre-Deploy Security Gatekeeper**
-
-```text
- [====][====]-.       [====][====][====]       [====][====]-. 
- |[||]   [||]||       |[||]        [||]|       |[||]   [||]|| 
- [====][====]-+       |[||]        [||]|       [====][====]-+ 
- |[||]   [||]||       |[||]        [||]|       |[||]   [||]|| 
- [====][====]-'       [====][====][====]       [====][====]-' 
-  |________|              |________|            |________|    
-               -- bouncer-on-board --
-                 "I'm Gate keeping"
-```
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](pyproject.toml)
