@@ -7,15 +7,17 @@ from pathlib import Path
 import shutil
 import sys
 import time
-from typing import Optional
+from typing import List, Optional
 import httpx
 from rich.console import Console
 from rich.table import Table
 import typer
+import yaml
 
 from bob import __version__
 from bob.config import load_config
 from bob.models import Decision, Finding
+from bob.pkg.osv import query_osv
 
 app = typer.Typer(
     name="bob",
@@ -487,20 +489,116 @@ def verify(
     raise typer.Exit(code=0)
 
 
+from bob.guards.injection import (
+    evaluate_injection_semantics,
+    scan_file_for_injections,
+)
+from bob.adapters.shim import (
+    get_default_shims_dir,
+    install_shims,
+    uninstall_shims,
+)
+
+
+@app.command(name="guard-text")
+def guard_text(
+    path: Path = typer.Argument(
+        ..., help="Path to text or markdown file to scan for injections"
+    ),
+    ai: bool = typer.Option(
+        False, "--ai", help="Query local SLM for semantic second opinion"
+    ),
+) -> None:
+    """Scan file for prompt injection and instruction overrides before agent reads it."""
+    if not path.is_file():
+        err_console.print(f"[bold red]Error:[/bold red] Target file '{path}' does not exist.")
+        raise typer.Exit(code=1)
+
+    findings = scan_file_for_injections(path)
+    cfg = load_config()
+
+    if ai:
+        try:
+            content = path.read_text(encoding="utf-8", errors="replace")
+            ai_opinion = evaluate_injection_semantics(content, cfg)
+            if ai_opinion:
+                console.print(f"AI: {cfg.model} | {ai_opinion}")
+            else:
+                console.print("AI second opinion: unavailable")
+        except Exception:
+            console.print("AI second opinion: unavailable")
+
+    high_crit_findings = [f for f in findings if f.severity.lower() in ("critical", "high")]
+    if high_crit_findings:
+        for f in high_crit_findings:
+            err_console.print(f"BOB BLOCKED [{f.id}] rule={f.rule_id} file={path}")
+            err_console.print(f"Reason: {f.title}")
+            err_console.print(f"Evidence: {f.evidence}")
+            err_console.print("Do: review and sanitize this file before allowing the agent to read it.")
+        raise typer.Exit(code=2)
+
+    console.print(f"[green]BOB GUARD-TEXT PASSED[/green]: No high/critical prompt injection tripwires detected in {path}.")
+    raise typer.Exit(code=0)
+
+
 @app.command()
-def audit() -> None:
+def audit(
+    manifest_path: Path = typer.Option(
+        Path("requirements.txt"), "--manifest", help="Manifest or lockfile to audit"
+    ),
+) -> None:
     """Check lockfiles and installed dependencies against OSV advisories."""
-    err_console.print("[yellow]audit is under development in M1/M3[/yellow]")
+    if not manifest_path.is_file():
+        console.print(f"[dim]No manifest found at '{manifest_path}'. Lockfile audit skipped.[/dim]")
+        raise typer.Exit(code=0)
+
+    try:
+        content = manifest_path.read_text(encoding="utf-8", errors="replace")
+        lines = [l.strip() for l in content.splitlines() if l.strip() and not l.strip().startswith("#")]
+    except Exception as e:
+        err_console.print(f"[bold red]Error reading manifest:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+    console.print(f"[bold cyan]BOB Audit ({manifest_path}):[/bold cyan] Checking {len(lines)} dependencies against OSV...")
+    vuln_found = False
+    for line in lines:
+        parts = line.split("==")
+        pkg_name = parts[0].strip()
+        pkg_ver = parts[1].strip() if len(parts) > 1 else None
+        advisories = query_osv("PyPI", pkg_name, pkg_ver)
+        if advisories:
+            vuln_found = True
+            for adv in advisories:
+                err_console.print(f"[bold red]Vulnerability:[/bold red] {pkg_name} {pkg_ver or ''} -> {adv.get('id', 'ADV')}: {adv.get('summary', '')}")
+
+    if vuln_found:
+        err_console.print("\n[bold red]BOB AUDIT FAILED[/bold red]: Vulnerable dependencies found.")
+        raise typer.Exit(code=1)
+
+    console.print("[green]BOB AUDIT PASSED[/green]: No known OSV vulnerabilities found in manifest.")
     raise typer.Exit(code=0)
 
 
 @app.command()
 def shim(
     action: str = typer.Argument(..., help="Action: install or uninstall"),
+    dest: Optional[Path] = typer.Option(
+        None, "--dest", help="Custom destination directory for shims"
+    ),
 ) -> None:
-    """Manage PATH wrapper shims (pip, npm, uv)."""
-    err_console.print(f"[yellow]shim {action} is under development in M5[/yellow]")
-    raise typer.Exit(code=0)
+    """Manage PATH wrapper shims (pip, npm, npx, uv)."""
+    if action == "install":
+        created = install_shims(dest)
+        console.print(f"[green]Installed {len(created)} shim wrappers in {dest or get_default_shims_dir()}[/green]")
+        console.print(f"[dim]Add {dest or get_default_shims_dir()} to your PATH to intercept terminal tool calls.[/dim]")
+        raise typer.Exit(code=0)
+    elif action == "uninstall":
+        removed = uninstall_shims(dest)
+        console.print(f"[green]Uninstalled {removed} shim wrapper(s) from {dest or get_default_shims_dir()}[/green]")
+        raise typer.Exit(code=0)
+    else:
+        err_console.print(f"[bold red]Error:[/bold red] Unknown action '{action}'. Use 'install' or 'uninstall'.")
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -508,9 +606,25 @@ def allow(
     package: str = typer.Argument(..., help="Package name to allowlist"),
 ) -> None:
     """Human-only allowlist entry in .bob/allowlist.yaml."""
-    err_console.print(
-        f"[yellow]allow is under development in M2: {package}[/yellow]"
-    )
+    allowlist_path = Path(".bob/allowlist.yaml")
+    allowlist_path.parent.mkdir(parents=True, exist_ok=True)
+    existing: List[str] = []
+    if allowlist_path.is_file():
+        try:
+            with open(allowlist_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if isinstance(data, list):
+                    existing = [str(x) for x in data]
+        except Exception:
+            pass
+
+    if package not in existing:
+        existing.append(package)
+        with open(allowlist_path, "w", encoding="utf-8") as f:
+            yaml.dump(existing, f)
+        console.print(f"[green]Allowlisted package:[/green] '{package}' in {allowlist_path}")
+    else:
+        console.print(f"[dim]Package '{package}' is already allowlisted.[/dim]")
     raise typer.Exit(code=0)
 
 
