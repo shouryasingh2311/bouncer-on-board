@@ -52,9 +52,13 @@ def find_config_path() -> Optional[Path]:
         # If explicitly specified in BOB_CONFIG but missing, return path so caller can log/raise
         return path
 
-    default_path = Path.cwd() / ".bob" / "config.yaml"
-    if default_path.is_file():
-        return default_path
+    local_path = Path.cwd() / ".bob" / "config.yaml"
+    if local_path.is_file():
+        return local_path
+
+    home_path = Path.home() / ".bob" / "config.yaml"
+    if home_path.is_file():
+        return home_path
 
     return None
 

@@ -89,6 +89,71 @@ bob scan demo/vulnerable_app --no-ai
 
 ---
 
+## 🧪 Live Demo & Judge Evaluation Walkthrough (Test in 2 Minutes)
+
+Judges and evaluators can verify all BOB capabilities using the included live demo assets in the repository:
+
+### Test 1: Package Gate Attack Defense (Blocks Typosquats & Hallucinations)
+Simulate an AI agent attempting to download a hallucinated or typosquatted package:
+```bash
+bob check-install pypi reqeusts
+```
+**Expected Outcome**: Instant exit code `2` block:
+```
+BOB BLOCKED [BOB-0001] rule=PKG-NOT-FOUND package=reqeusts
+Reason: Package 'reqeusts' does not exist on PYPI (likely hallucinated).
+Do: remove it, ask the user, or pick a verified package. Do not retry this install.
+```
+
+### Test 2: Prompt Injection Defense (`bob guard-text`)
+Simulate an AI agent reading an untrusted task prompt or README attempting instruction override and credential exfiltration:
+```bash
+bob guard-text demo/malicious_prompt.md
+```
+**Expected Outcome**: Threat blocked before agent ingestion:
+```
+BOB BLOCKED [BOB-0001] rule=INJ-001 file=demo/malicious_prompt.md
+Reason: Instruction override phrase
+BOB BLOCKED [BOB-0002] rule=INJ-020 file=demo/malicious_prompt.md
+Reason: Instruction to send secrets or env data to a URL
+```
+
+### Test 3: Pre-Deploy Security Gate on Vulnerable App (`bob scan`)
+Scan the included vulnerable demo application (`demo/vulnerable_app`) containing hardcoded secrets, SQL injection, dynamic eval, and unverified TLS:
+```bash
+bob scan demo/vulnerable_app --no-ai
+```
+**Expected Outcome**: Gate fails with exit code `1`, generating `.bob/report.md` and `.bob/report.json`:
+```
+BOB Pre-Deploy Scan Summary (demo/vulnerable_app)
++------------------+
+| Severity | Count |
+|----------+-------|
+| CRITICAL | 4     |
+| HIGH     | 3     |
+| MEDIUM   | 0     |
+| LOW      | 0     |
+| INFO     | 0     |
++------------------+
+BOB SCAN GATE FAILED: 7 issue(s) matching fail policy ['critical', 'high'].
+```
+
+### Test 4: Verify Single-Finding Fix (`bob verify`)
+Run `bob verify` against a finding fingerprint prefix (e.g. from `.bob/report.md`):
+```bash
+bob verify 8a08c677ec
+```
+**Expected Outcome**: Re-tests originating rule without having to rescan the entire project.
+
+### Test 5: Switch AI Intelligence Modes (`bob setup` & `bob doctor`)
+Configure local Gemma via Ollama, Cloud AI (Google Gemini, OpenAI, Groq), or 100% offline Pure Deterministic Mode:
+```bash
+bob setup
+bob doctor
+```
+
+---
+
 ## 💻 CLI Reference & Complete Command Guide
 
 ### Master Command Quick Reference
