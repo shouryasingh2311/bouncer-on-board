@@ -145,7 +145,10 @@ def doctor() -> None:
     raise typer.Exit(code=0)
 
 
-# Command stubs for upcoming milestones in Contract Addendum v1:
+from bob.cmdparse import parse_pkg_and_version
+from bob.pkg.gate import evaluate_package
+
+
 @app.command("check-install")
 def check_install(
     ecosystem: str = typer.Argument(..., help="Package ecosystem: pypi or npm"),
@@ -155,10 +158,32 @@ def check_install(
     ),
 ) -> None:
     """Run package gate manually before installation."""
-    err_console.print(
-        f"[yellow]check-install is under development in M1: {ecosystem} {package}[/yellow]"
-    )
-    raise typer.Exit(code=0)
+    cfg = load_config()
+    pkg_name, version = parse_pkg_and_version(package, ecosystem.lower())
+
+    decision = evaluate_package(ecosystem, pkg_name, version, cfg)
+
+    if json_output:
+        console.print(json.dumps(decision.to_dict(), indent=2))
+
+    first_finding = decision.findings[0] if decision.findings else None
+    finding_id = first_finding.id if first_finding else "BOB-0001"
+    rule_id = first_finding.rule_id if first_finding else "PKG-GATE"
+    reason_text = decision.reasons[0] if decision.reasons else "Security policy check"
+
+    if decision.action == "block":
+        err_console.print(f"BOB BLOCKED [{finding_id}] rule={rule_id} package={pkg_name}")
+        err_console.print(f"Reason: {reason_text}")
+        err_console.print("Do: remove it, ask the user, or pick a verified package. Do not retry this install.")
+        raise typer.Exit(code=2)
+    elif decision.action == "warn":
+        err_console.print(f"BOB WARN [{finding_id}] rule={rule_id} package={pkg_name}: {reason_text}")
+        raise typer.Exit(code=0)
+    else:
+        # allow
+        if not json_output:
+            console.print(f"[green]BOB ALLOW[/green] package={pkg_name} on {ecosystem.upper()}")
+        raise typer.Exit(code=0)
 
 
 @app.command()
