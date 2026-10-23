@@ -2,17 +2,6 @@
 
 > **Zero-Trust IDE Agent Firewall & Pre-Deploy Security Gatekeeper**
 
-```text
- [====][====]-.       [====][====][====]       [====][====]-. 
- |[||]   [||]||       |[||]        [||]|       |[||]   [||]|| 
- [====][====]-+       |[||]        [||]|       [====][====]-+ 
- |[||]   [||]||       |[||]        [||]|       |[||]   [||]|| 
- [====][====]-'       [====][====][====]       [====][====]-' 
-  |________|              |________|            |________|    
-               -- bouncer-on-board --
-                 "I'm Gate keeping"
-```
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](pyproject.toml)
 [![Model: Gemma 4 E2B](https://img.shields.io/badge/Model-Gemma%204%20E2B%20(~5.1B)-orange.svg)](https://ollama.com/library/gemma4)
