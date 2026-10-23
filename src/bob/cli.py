@@ -45,8 +45,8 @@ app = typer.Typer(
     help="Zero-Trust IDE Agent Firewall & Pre-Deploy Security Gatekeeper",
     no_args_is_help=True,
 )
-console = Console()
-err_console = Console(stderr=True)
+console = Console(soft_wrap=True)
+err_console = Console(stderr=True, soft_wrap=True)
 
 
 def version_callback(value: bool) -> None:

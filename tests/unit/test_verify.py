@@ -13,7 +13,7 @@ runner = CliRunner()
 def test_verify_missing_report(tmp_path: Path) -> None:
     result = runner.invoke(app, ["verify", "BOB-0001", "--report", str(tmp_path / "missing.json")])
     assert result.exit_code == 1
-    assert "not found" in result.output.lower()
+    assert "not found" in " ".join(result.output.lower().split())
 
 
 def test_verify_finding_not_in_report(tmp_path: Path) -> None:
@@ -22,7 +22,7 @@ def test_verify_finding_not_in_report(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["verify", "BOB-9999", "--report", str(report_file)])
     assert result.exit_code == 1
-    assert "not found in report" in result.output.lower()
+    assert "not found in report" in " ".join(result.output.lower().split())
 
 
 def test_verify_finding_still_present(tmp_path: Path) -> None:
