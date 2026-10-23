@@ -53,58 +53,32 @@ def scan_text_for_injections(
     found_keys = set()
     idx = 1
 
-    lines = text.splitlines()
-
-    # 1. Line-by-line inspection
-    for line_num, line in enumerate(lines, start=1):
-        for r_dict, pat in rules:
-            m = pat.search(line)
-            if m:
-                r_id = r_dict.get("id", "INJ-UNKNOWN")
-                key = (r_id, line_num)
-                if key not in found_keys:
-                    found_keys.add(key)
-                    snippet = line.strip()[:100]
-                    # If snippet has invisible characters, show repr representation
-                    if r_id in ("INJ-010", "INJ-011"):
-                        snippet = repr(snippet[:60])
-                    f = Finding(
-                        id=f"BOB-{idx:04d}",
-                        rule_id=r_id,
-                        source="bob-guard",
-                        category="injection",
-                        severity=r_dict.get("severity", "high"),
-                        title=r_dict.get("title", "Prompt injection detected"),
-                        file=file_path,
-                        line=line_num,
-                        evidence=mask_secret(snippet),
-                    )
-                    findings.append(f)
-                    idx += 1
-
-    # 2. Whole-text multiline scan (e.g. for cross-line exfiltration or tags)
     for r_dict, pat in rules:
         r_id = r_dict.get("id", "INJ-UNKNOWN")
-        if any(f.rule_id == r_id for f in findings):
-            continue
+        for m in pat.finditer(text):
+            line_num = text.count("\n", 0, m.start()) + 1
+            key = (r_id, line_num)
+            if key in found_keys:
+                continue
+            found_keys.add(key)
 
-        m = pat.search(text)
-        if m:
             snippet = m.group(0).strip().replace("\n", " ")[:100]
             if r_id in ("INJ-010", "INJ-011"):
                 snippet = repr(snippet[:60])
-            f = Finding(
-                id=f"BOB-{idx:04d}",
-                rule_id=r_id,
-                source="bob-guard",
-                category="injection",
-                severity=r_dict.get("severity", "high"),
-                title=r_dict.get("title", "Prompt injection detected"),
-                file=file_path,
-                line=1,
-                evidence=mask_secret(snippet),
+
+            findings.append(
+                Finding(
+                    id=f"BOB-{idx:04d}",
+                    rule_id=r_id,
+                    source="bob-guard",
+                    category="injection",
+                    severity=r_dict.get("severity", "high"),
+                    title=r_dict.get("title", "Prompt injection detected"),
+                    file=file_path,
+                    line=line_num,
+                    evidence=mask_secret(snippet),
+                )
             )
-            findings.append(f)
             idx += 1
 
     return findings

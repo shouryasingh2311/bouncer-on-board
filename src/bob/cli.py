@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import shutil
 import sys
 import time
 from typing import List, Optional
+
 import httpx
 from rich.console import Console
 from rich.table import Table
@@ -15,9 +17,28 @@ import typer
 import yaml
 
 from bob import __version__
+from bob.adapters.shim import (
+    get_default_shims_dir,
+    install_shims,
+    uninstall_shims,
+)
+from bob.ai.triage import triage_findings
+from bob.cmdparse import extract_install_intents, parse_pkg_and_version
 from bob.config import load_config
+from bob.guards.injection import (
+    evaluate_injection_semantics,
+    scan_file_for_injections,
+)
+from bob.guards.sensitive_paths import (
+    check_command_sensitive_paths,
+    check_self_protection,
+)
 from bob.models import Decision, Finding
+from bob.pkg.gate import evaluate_package
 from bob.pkg.osv import query_osv
+from bob.report.markdown import count_severities, write_reports, ZERO_FINDINGS_MESSAGE
+from bob.scan.builtin import scan_file_content
+from bob.scan.runners import run_all_scanners
 
 app = typer.Typer(
     name="bob",
@@ -147,9 +168,6 @@ def doctor() -> None:
     raise typer.Exit(code=0)
 
 
-from bob.cmdparse import parse_pkg_and_version
-from bob.pkg.gate import evaluate_package
-
 
 @app.command("check-install")
 def check_install(
@@ -187,13 +205,6 @@ def check_install(
             console.print(f"[green]BOB ALLOW[/green] package={pkg_name} on {ecosystem.upper()}")
         raise typer.Exit(code=0)
 
-
-from datetime import datetime, timezone
-from bob.guards.sensitive_paths import (
-    check_command_sensitive_paths,
-    check_self_protection,
-)
-from bob.cmdparse import extract_install_intents
 
 
 def append_audit_log(entry: dict) -> None:
@@ -323,25 +334,6 @@ def intercept(
         console.print(json.dumps({"decision": "allow"}))
     raise typer.Exit(code=0)
 
-
-@app.command("guard-text")
-def guard_text(
-    path: Path = typer.Argument(..., help="Path to file/text to scan for prompt injection"),
-    ai: bool = typer.Option(
-        False, "--ai", help="Request optional AI semantic second opinion"
-    ),
-) -> None:
-    """Scan file content with injection tripwire pack."""
-    err_console.print(
-        f"[yellow]guard-text is under development in M5: {path}[/yellow]"
-    )
-    raise typer.Exit(code=0)
-
-
-from bob.scan.runners import run_all_scanners
-from bob.report.markdown import count_severities, write_reports, ZERO_FINDINGS_MESSAGE
-from bob.ai.triage import triage_findings
-from bob.scan.builtin import scan_file_content
 
 
 @app.command()
@@ -488,16 +480,6 @@ def verify(
     console.print(f"[green]BOB VERIFY PASSED[/green]: [{target_id}] {rule_id} was successfully resolved.")
     raise typer.Exit(code=0)
 
-
-from bob.guards.injection import (
-    evaluate_injection_semantics,
-    scan_file_for_injections,
-)
-from bob.adapters.shim import (
-    get_default_shims_dir,
-    install_shims,
-    uninstall_shims,
-)
 
 
 @app.command(name="guard-text")
