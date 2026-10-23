@@ -54,9 +54,15 @@ Vibe-coding agents ship fast, but they blindly install hallucinated packages, tr
 
 ## ⚡ 60-Second Quickstart
 
+### Quick Install (One-Liner)
+```bash
+pip install git+https://github.com/shouryasingh2311/bouncer-on-board.git
+bob doctor
+```
+
 ### Prerequisites
 - Python 3.10+
-- [Ollama](https://ollama.com/) running locally: `ollama run gemma4:e2b`
+- [Ollama](https://ollama.com/) running locally: `ollama run gemma4:e2b` (Optional, for local SLM triage)
 
 ### Windows (PowerShell)
 ```powershell
