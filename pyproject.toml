@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bouncer-on-board"
+version = "0.1.0"
+description = "Zero-Trust IDE Agent Firewall & Pre-Deploy Security Gatekeeper"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "WYTE", email = "shouryasingh2311@gmail.com"}
+]
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "httpx>=0.24.0",
+    "pyyaml>=6.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0"
+]
+
+[project.scripts]
+bob = "bob.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
