@@ -109,9 +109,9 @@ def run_setup_wizard(console: Console) -> None:
             "and hallucinated packages. It uses AI to triage security findings with remediation\n"
             "advice, with seamless fallback to built-in rules.\n\n"
             "[bold cyan]Select an intelligence mode:[/bold cyan]\n"
-            "  [bold cyan]1[/bold cyan] Local AI via Ollama ([green]Recommended[/green] • Private, Free, Gemma)\n"
+            "  [bold cyan]1[/bold cyan] Local AI via Ollama ([green]Recommended[/green] - Private, Free, Gemma)\n"
             "  [bold cyan]2[/bold cyan] Cloud AI via API Key (Gemini, Gemma endpoint, or OpenAI)\n"
-            "  [bold cyan]3[/bold cyan] Pure Deterministic Mode (Zero setup • 100% built-in local rules)",
+            "  [bold cyan]3[/bold cyan] Pure Deterministic Mode (Zero setup - 100% built-in local rules)",
             title="[bold cyan]BOB Setup[/bold cyan]",
             border_style="cyan",
         )
@@ -238,7 +238,7 @@ def run_setup_wizard(console: Console) -> None:
             "  [bold cyan]1[/bold cyan] Cursor / VS Code / Windsurf ([green]Auto-configures terminal interceptor & shims[/green])\n"
             "  [bold cyan]2[/bold cyan] Google Antigravity IDE ([green]Registers native PreToolUse lifecycle hook[/green])\n"
             "  [bold cyan]3[/bold cyan] Claude Code / Terminal Agents ([green]Installs global PATH shims for pip, npm, uv[/green])\n"
-            "  [bold cyan]4[/bold cyan] All of the Above ([green]Complete Protection • Recommended[/green])\n"
+            "  [bold cyan]4[/bold cyan] All of the Above ([green]Complete Protection - Recommended[/green])\n"
             "  [bold cyan]5[/bold cyan] Skip IDE setup (CLI commands only)",
             title="[bold cyan]IDE Integration[/bold cyan]",
             border_style="cyan",
@@ -267,8 +267,8 @@ def run_setup_wizard(console: Console) -> None:
         }
         chosen_ide = mapping.get(ide_choice, "all")
         result = protect_workspace(target_path, chosen_ide)
-        console.print(f"\n[bold green]✓ Protected workspace: {result['workspace']}[/bold green]")
+        console.print(f"\n[bold green][OK] Protected workspace: {result['workspace']}[/bold green]")
         for action in result["actions"]:
-            console.print(f"  [green]•[/green] {action}")
+            console.print(f"  [green]*[/green] {action}")
 
     console.print("\n[dim]Run [bold]bob doctor[/bold] to check system status, or [bold]bob scan .[/bold] to run a pre-deploy audit.[/dim]\n")

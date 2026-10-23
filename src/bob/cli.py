@@ -642,9 +642,9 @@ def protect(
     """Configure automated interception hooks for IDEs and coding agents."""
     from bob.adapters.ide import protect_workspace
     result = protect_workspace(path, ide)
-    console.print(f"[bold green]✓ Protected workspace:[/bold green] {result['workspace']}")
+    console.print(f"[bold green][OK] Protected workspace:[/bold green] {result['workspace']}")
     for action in result["actions"]:
-        console.print(f"  [green]•[/green] {action}")
+        console.print(f"  [green]*[/green] {action}")
     raise typer.Exit(code=0)
 
 
