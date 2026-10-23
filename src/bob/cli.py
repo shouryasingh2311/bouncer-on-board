@@ -22,6 +22,7 @@ from bob.adapters.shim import (
     install_shims,
     uninstall_shims,
 )
+from bob.ai.cloud_client import validate_cloud_credentials
 from bob.ai.triage import triage_findings
 from bob.banner import print_banner
 from bob.setup import run_setup_wizard
@@ -95,61 +96,102 @@ def doctor() -> None:
     py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     table.add_row("Python", "[green]OK[/green]", f"v{py_ver} ({sys.platform})")
 
-    # Local Ollama & Model Probe
-    ollama_ok = False
-    model_found = False
-    latency_ms = 0.0
+    ai_provider = cfg.ai_provider.lower()
+    needs_setup_prompt = False
 
-    try:
-        t0 = time.perf_counter()
-        # Probe Ollama /api/tags with a short timeout (1.5s)
-        resp = httpx.get(f"{cfg.ollama_url.rstrip('/')}/api/tags", timeout=1.5)
-        latency_ms = (time.perf_counter() - t0) * 1000
-
-        if resp.status_code == 200:
-            ollama_ok = True
-            tags_data = resp.json()
-            models_list = [
-                m.get("name", "") for m in tags_data.get("models", [])
-            ]
-            # Match configured model (e.g. gemma4:e2b or gemma4:e2b:latest)
-            cfg_model = cfg.model.lower()
-            model_found = any(
-                cfg_model == m.lower() or m.lower().startswith(f"{cfg_model}:")
-                for m in models_list
-            )
-    except Exception:
-        ollama_ok = False
-
-    if ollama_ok:
+    if ai_provider == "deterministic":
         table.add_row(
-            "Ollama Service",
-            "[green]Online[/green]",
-            f"{cfg.ollama_url} (latency: {latency_ms:.1f}ms)",
+            "AI Mode",
+            "[green]Active[/green]",
+            "Pure deterministic mode (100% offline, zero external dependencies)",
         )
-        if model_found:
-            table.add_row(
-                "AI Model",
-                "[green]Available[/green]",
-                f"{cfg.model} (ready for local triage)",
+    elif ai_provider in ("gemini", "openai", "groq", "openrouter", "custom", "cloud"):
+        provider_name = ai_provider.title()
+        if cfg.api_key and cfg.api_key.strip():
+            masked_key = (
+                cfg.api_key[:4] + "..." + cfg.api_key[-4:]
+                if len(cfg.api_key) > 8
+                else "****"
             )
+            is_valid, msg = validate_cloud_credentials(
+                ai_provider, cfg.api_key, cfg.model, timeout=2.0
+            )
+            if is_valid:
+                table.add_row(
+                    f"Cloud AI ({provider_name})",
+                    "[green]Online[/green]",
+                    f"{cfg.model} (key: {masked_key}) - {msg}",
+                )
+            else:
+                table.add_row(
+                    f"Cloud AI ({provider_name})",
+                    "[yellow]Auth Warning[/yellow]",
+                    f"{cfg.model} (key: {masked_key}) - {msg}. (Fallback templates active)",
+                )
+                needs_setup_prompt = True
         else:
             table.add_row(
-                "AI Model",
-                "[yellow]Not Found[/yellow]",
-                f"Configured: '{cfg.model}'. Run `ollama pull {cfg.model}`. (Fallback templates will be used)",
+                f"Cloud AI ({provider_name})",
+                "[yellow]Key Missing[/yellow]",
+                "No API key configured. Run 'bob setup' to configure.",
             )
+            needs_setup_prompt = True
     else:
-        table.add_row(
-            "Ollama Service",
-            "[yellow]Offline[/yellow]",
-            f"{cfg.ollama_url} unreachable. (Deterministic fallback templates will be used)",
-        )
-        table.add_row(
-            "AI Model",
-            "[yellow]Fallback[/yellow]",
-            "Deterministic rule templates active",
-        )
+        # Default: Local Ollama & Model Probe
+        ollama_ok = False
+        model_found = False
+        latency_ms = 0.0
+
+        try:
+            t0 = time.perf_counter()
+            resp = httpx.get(f"{cfg.ollama_url.rstrip('/')}/api/tags", timeout=1.5)
+            latency_ms = (time.perf_counter() - t0) * 1000
+
+            if resp.status_code == 200:
+                ollama_ok = True
+                tags_data = resp.json()
+                models_list = [
+                    m.get("name", "") for m in tags_data.get("models", [])
+                ]
+                cfg_model = cfg.model.lower()
+                model_found = any(
+                    cfg_model == m.lower() or m.lower().startswith(f"{cfg_model}:")
+                    for m in models_list
+                )
+        except Exception:
+            ollama_ok = False
+
+        if ollama_ok:
+            table.add_row(
+                "Ollama Service",
+                "[green]Online[/green]",
+                f"{cfg.ollama_url} (latency: {latency_ms:.1f}ms)",
+            )
+            if model_found:
+                table.add_row(
+                    "AI Model",
+                    "[green]Available[/green]",
+                    f"{cfg.model} (ready for local triage)",
+                )
+            else:
+                table.add_row(
+                    "AI Model",
+                    "[yellow]Not Found[/yellow]",
+                    f"Configured: '{cfg.model}'. Run `ollama pull {cfg.model}`. (Fallback templates will be used)",
+                )
+                needs_setup_prompt = True
+        else:
+            table.add_row(
+                "Ollama Service",
+                "[yellow]Offline[/yellow]",
+                f"{cfg.ollama_url} unreachable. (Deterministic fallback templates will be used)",
+            )
+            table.add_row(
+                "AI Model",
+                "[yellow]Fallback[/yellow]",
+                "Deterministic rule templates active",
+            )
+            needs_setup_prompt = True
 
     # External Scanners (both optional per PROJECT.md Section 4)
     gitleaks_path = shutil.which("gitleaks")
@@ -177,7 +219,7 @@ def doctor() -> None:
         "\n[dim]Note: External tools and Ollama are optional. BOB operates fully in deterministic mode without them.[/dim]"
     )
 
-    if (not ollama_ok or not model_found) and sys.stdin.isatty() and sys.stdout.isatty():
+    if needs_setup_prompt and sys.stdin.isatty() and sys.stdout.isatty():
         from rich.prompt import Confirm
         if Confirm.ask("\n[bold cyan]Run interactive AI setup assistant now?[/bold cyan]", default=False, console=console):
             run_setup_wizard(console)
@@ -382,6 +424,20 @@ def scan(
     if not path.exists():
         err_console.print(f"[bold red]Error:[/bold red] Target path '{path}' does not exist.")
         raise typer.Exit(code=3)
+
+    resolved_path = path.resolve()
+    user_home = Path.home().resolve()
+    if resolved_path == user_home or resolved_path.parent == resolved_path:
+        err_console.print(
+            f"[bold red]Refusing to scan user home or root directory:[/bold red] '{resolved_path}'\n\n"
+            f"[yellow]Scanning a user home folder crawls hundreds of thousands of OS and AppData files.\n"
+            f"Please run BOB inside your project directory:\n"
+            f"  cd <path_to_your_project>\n"
+            f"  bob scan .\n\n"
+            f"Or specify the project directory explicitly:\n"
+            f"  bob scan ./my-project[/yellow]"
+        )
+        raise typer.Exit(code=2)
 
     cfg = load_config()
 

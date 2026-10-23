@@ -199,17 +199,38 @@ def scan_directory_builtin(
         "dist",
         "build",
         ".pytest_cache",
+        "AppData",
+        "appdata",
+        "Local Settings",
+        ".cache",
+        ".cargo",
+        ".rustup",
+        ".vscode",
+        ".idea",
+        "Windows",
+        "Program Files",
+        "Program Files (x86)",
+        "Library",
     }
+    files_scanned = 0
+    max_scan_files = 5000
 
     for path in target_dir.rglob("*"):
+        if files_scanned >= max_scan_files:
+            break
         if path.is_file():
-            # Check skip directories
-            parts = set(path.parts)
-            if parts.intersection(skip_dirs):
+            # Check skip directories within target_dir
+            try:
+                rel_parts = set(path.relative_to(target_dir).parts[:-1])
+            except ValueError:
+                rel_parts = set(path.parts[:-1])
+
+            if rel_parts.intersection(skip_dirs):
                 continue
 
             # Support .env* files even without extension
             if path.name.startswith(".env") or path.suffix.lower() in supported_exts:
+                files_scanned += 1
                 try:
                     rel_path = str(path.relative_to(root).as_posix())
                 except ValueError:

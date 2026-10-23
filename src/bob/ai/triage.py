@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from bob.ai.cloud_client import query_cloud_triage
 from bob.ai.fallback import get_fallback_triage
 from bob.ai.ollama_client import check_ollama_status, query_ollama_triage
 from bob.ai.prompts import extract_file_context
@@ -29,28 +30,49 @@ def triage_findings(
     max_findings_to_triage: int = 10,
 ) -> Tuple[List[Finding], str, int, int]:
     """Run AI triage across findings, strictly enforcing Security Axiom 2.
-    
+
     Returns:
         (updated_findings, model_display, explained_count, downranked_count)
     """
     if not findings:
         return [], config.model, 0, 0
 
-    is_ollama_ready, _ = check_ollama_status(config.ollama_url, config.model)
+    ai_provider = config.ai_provider.lower()
+    is_ai_ready = False
+    model_display = "deterministic templates"
 
-    model_display = config.model if is_ollama_ready else "deterministic templates (model unavailable)"
+    if ai_provider == "deterministic":
+        model_display = "deterministic templates (zero-token mode)"
+    elif ai_provider == "ollama":
+        is_ai_ready, _ = check_ollama_status(config.ollama_url, config.model)
+        model_display = config.model if is_ai_ready else "deterministic templates (model unavailable)"
+    elif ai_provider in ("gemini", "openai", "groq", "openrouter", "custom", "cloud"):
+        if config.api_key and config.api_key.strip():
+            is_ai_ready = True
+            model_display = f"{config.model} ({ai_provider.title()})"
+        else:
+            model_display = f"deterministic templates ({ai_provider.title()} API key missing)"
+
     explained_count = 0
     downranked_count = 0
 
     for idx, finding in enumerate(findings):
         # Only query LLM for the top N findings by severity to preserve CPU performance
-        if is_ollama_ready and idx < max_findings_to_triage:
+        if is_ai_ready and idx < max_findings_to_triage:
             context_snippet = extract_file_context(
                 target_dir, finding.file, finding.line, max_lines=30
             )
-            raw_triage = query_ollama_triage(
-                config.ollama_url, config.model, finding, context_snippet
-            )
+
+            raw_triage = None
+            if ai_provider == "ollama":
+                raw_triage = query_ollama_triage(
+                    config.ollama_url, config.model, finding, context_snippet
+                )
+            else:
+                raw_triage = query_cloud_triage(
+                    config, finding, context_snippet
+                )
+
             if raw_triage:
                 verdict = raw_triage.get("verdict", "uncertain")
                 explanation = str(raw_triage.get("explanation", "")).strip()

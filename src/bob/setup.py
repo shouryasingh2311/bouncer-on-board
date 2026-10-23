@@ -16,6 +16,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 
 from bob.adapters.ide import protect_workspace
+from bob.ai.cloud_client import validate_cloud_credentials
 from bob.banner import print_banner
 from bob.config import Config, load_config, save_config
 
@@ -195,29 +196,76 @@ def run_setup_wizard(console: Console) -> None:
         console.print(f"Model: [bold cyan]{cfg.model}[/bold cyan] via [bold]{cfg.ollama_url}[/bold]")
 
     elif choice == "2":
-        console.print("\n[bold cyan]Configuring Cloud AI Provider...[/bold cyan]")
-        provider = Prompt.ask(
-            "Select provider",
-            choices=["gemini", "openai", "custom"],
-            default="gemini",
+        console.print(
+            Panel(
+                "[bold cyan]Select Cloud AI Platform:[/bold cyan]\n\n"
+                "  [bold cyan]1[/bold cyan] Google Gemini ([green]Recommended[/green] - Fast, Free Tier available)\n"
+                "  [bold cyan]2[/bold cyan] OpenAI (GPT-4o mini, GPT-4o)\n"
+                "  [bold cyan]3[/bold cyan] Groq (High-speed Gemma 2 / Llama 3 API)\n"
+                "  [bold cyan]4[/bold cyan] OpenRouter (Multi-provider API)\n"
+                "  [bold cyan]5[/bold cyan] Custom OpenAI-compatible Endpoint (vLLM, LM Studio, etc.)",
+                title="[bold cyan]Cloud AI Provider[/bold cyan]",
+                border_style="cyan",
+            )
+        )
+        cloud_choice = Prompt.ask(
+            "Choose a platform",
+            choices=["1", "2", "3", "4", "5", "gemini", "openai", "groq", "openrouter", "custom"],
+            default="1",
             console=console,
         )
+
+        provider_map = {
+            "1": ("gemini", "Google Gemini", "gemini-1.5-flash"),
+            "gemini": ("gemini", "Google Gemini", "gemini-1.5-flash"),
+            "2": ("openai", "OpenAI", "gpt-4o-mini"),
+            "openai": ("openai", "OpenAI", "gpt-4o-mini"),
+            "3": ("groq", "Groq", "gemma2-9b-it"),
+            "groq": ("groq", "Groq", "gemma2-9b-it"),
+            "4": ("openrouter", "OpenRouter", "google/gemma-2-9b-it:free"),
+            "openrouter": ("openrouter", "OpenRouter", "google/gemma-2-9b-it:free"),
+            "5": ("custom", "Custom Endpoint", "default"),
+            "custom": ("custom", "Custom Endpoint", "default"),
+        }
+        provider_code, provider_name, default_model = provider_map[str(cloud_choice).lower()]
+
         api_key = Prompt.ask(
-            "Enter your API key (input hidden)",
+            f"Enter your {provider_name} API key (input hidden)",
             password=True,
             console=console,
         )
+
+        custom_base = None
+        if provider_code == "custom":
+            custom_base = Prompt.ask(
+                "Enter API base URL",
+                default="http://localhost:8000/v1",
+                console=console,
+            )
+
         model_name = Prompt.ask(
-            "Enter model identifier",
-            default="gemini-1.5-flash" if provider == "gemini" else "gpt-4o-mini",
+            f"Enter model identifier for {provider_name}",
+            default=default_model,
             console=console,
         )
-        cfg.ai_provider = provider
-        cfg.api_key = api_key
+
+        with console.status(f"[bold cyan]Verifying API key with {provider_name}...[/bold cyan]"):
+            is_valid, status_msg = validate_cloud_credentials(
+                provider_code, api_key, model_name, base_url=custom_base
+            )
+
+        if is_valid:
+            console.print(f"[bold green][OK] {status_msg}[/bold green]")
+        else:
+            console.print(f"[bold yellow][!] Live verification note: {status_msg}[/bold yellow]")
+            console.print("[dim]Key saved. (Fallback templates will be active until credentials verify)[/dim]")
+
+        cfg.ai_provider = provider_code
+        cfg.api_key = api_key.strip()
         cfg.model = model_name
         cfg_path = save_config(cfg)
         console.print(f"\n[bold green]Configuration successfully saved to {cfg_path}[/bold green]")
-        console.print(f"Provider: [bold cyan]{provider}[/bold cyan] | Model: [bold cyan]{model_name}[/bold cyan]")
+        console.print(f"Provider: [bold cyan]{provider_name}[/bold cyan] | Model: [bold cyan]{model_name}[/bold cyan]")
 
     else:
         # Choice 3: Deterministic
@@ -252,6 +300,7 @@ def run_setup_wizard(console: Console) -> None:
         console=console,
     )
 
+    target_path = Path.cwd().resolve()
     if ide_choice != "5":
         target_path_str = Prompt.ask(
             "Enter workspace/project directory to protect",
@@ -259,6 +308,13 @@ def run_setup_wizard(console: Console) -> None:
             console=console,
         )
         target_path = Path(target_path_str).resolve()
+        user_home = Path.home().resolve()
+        if target_path == user_home:
+            console.print(
+                f"[yellow]Notice: You selected your user home folder ('{target_path}').\n"
+                f"For full project protection, you can also re-run 'bob protect' inside your project repository.[/yellow]"
+            )
+
         mapping = {
             "1": "cursor",
             "2": "antigravity",
@@ -271,4 +327,20 @@ def run_setup_wizard(console: Console) -> None:
         for action in result["actions"]:
             console.print(f"  [green]*[/green] {action}")
 
-    console.print("\n[dim]Run [bold]bob doctor[/bold] to check system status, or [bold]bob scan .[/bold] to run a pre-deploy audit.[/dim]\n")
+    # Crystal clear next steps banner
+    console.print(
+        Panel(
+            f"[bold green]BOB is Ready to Guard Your Agent![/bold green]\n\n"
+            f"[bold white]Next Steps:[/bold white]\n"
+            f"1. Open your project folder in terminal:\n"
+            f"   [cyan]cd \"{target_path}\"[/cyan]\n\n"
+            f"2. Verify system & AI status:\n"
+            f"   [cyan]bob doctor[/cyan]\n\n"
+            f"3. Run a security audit:\n"
+            f"   [cyan]bob scan .[/cyan]\n\n"
+            f"4. Test package interception gate:\n"
+            f"   [cyan]bob check-install pypi demo-good-lib[/cyan]",
+            title="[bold green]Ready[/bold green]",
+            border_style="green",
+        )
+    )
