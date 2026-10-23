@@ -16,6 +16,11 @@ runner = CliRunner()
 def test_ascii_banner_content() -> None:
     assert "____" in BOB_BANNER_ASCII
     assert "Bouncer On Board" in SUBTITLE
+    assert "(||||)" in BOB_BANNER_ASCII  # Bulldog mascot flexed fist
+    for line in BOB_BANNER_ASCII.splitlines():
+        assert len(line) <= 80, f"Line too long: {len(line)} chars"
+        for ch in line:
+            assert ord(ch) <= 126 and (ord(ch) >= 32 or ch in "\r\n\t"), f"Non-ASCII char: {ch}"
 
 
 def test_print_banner_tty(monkeypatch) -> None:
