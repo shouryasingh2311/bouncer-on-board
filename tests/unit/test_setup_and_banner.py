@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from bob.banner import BOB_BANNER_ASCII, print_banner
+from bob.banner import BOB_BANNER_ASCII, BOB_BANNER_STYLED, print_banner
 from bob.cli import app
 from bob.config import Config, load_config, save_config
 from bob.setup import run_setup_wizard
@@ -22,6 +22,11 @@ def test_ascii_banner_content() -> None:
         assert len(line) <= 80, f"Line too long: {len(line)} chars"
         for ch in line:
             assert ord(ch) <= 126 and (ord(ch) >= 32 or ch in "\r\n\t"), f"Non-ASCII char: {ch}"
+
+
+def test_styled_banner_content() -> None:
+    assert "█████████" in BOB_BANNER_STYLED
+    assert "╚════════╝" in BOB_BANNER_STYLED
 
 
 def test_print_banner_tty(monkeypatch) -> None:

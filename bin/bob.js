@@ -29,12 +29,23 @@ const c = {
 };
 
 function printBanner() {
+  const g1 = '\x1b[38;2;228;228;231m';
+  const g2 = '\x1b[38;2;161;161;170m';
+  const g3 = '\x1b[38;2;113;113;122m';
+  const g4 = '\x1b[38;2;82;82;91m';
+  const g5 = '\x1b[38;2;63;63;70m';
+  const w  = '\x1b[38;2;113;113;122m';
+  const wb = '\x1b[38;2;82;82;91m';
+  const rst = '\x1b[0m';
+
   console.log(`
-${c.cyan}  ____   ____  ____  ${c.reset}
-${c.cyan} | __ ) / __ \\| __ ) ${c.reset}  ${c.bold}BOB (Bouncer-on-Board)${c.reset}
-${c.cyan} |  _ \\| |  | |  _ \\ ${c.reset}  ${c.dim}Zero-Trust IDE Agent Firewall & Security Gatekeeper${c.reset}
-${c.cyan} | |_) | |__| | |_) |${c.reset}  ${c.green}v${VERSION}${c.reset}
-${c.cyan} |____/ \\____/|____/ ${c.reset}
+  ${g1}█████████${w}╗    ${g1}████████${w}╗    ${g1}█████████${w}╗${rst}
+  ${g2}███${w}╔══╗${g2}███${w}║   ${g2}███${w}╔══╗${g2}███${w}║   ${g2}███${w}╔══╗${g2}███${w}║${rst}
+  ${g3}██████████${w}╣   ${g3}███${w}║  ║${g3}███${w}║   ${g3}██████████${w}╣${rst}
+  ${g4}███${w}╔══╗${g4}███${w}║   ${g4}███${w}╚══╝${g4}███${w}║   ${g4}███${w}╔══╗${g4}███${w}║${rst}
+  ${g5}█████████${w}╝    ${g5}████████${w}╝    ${g5}█████████${w}╝${rst}
+  ${wb}╚════════╝    ╚══════╝     ╚════════╝${rst}
+  ${c.cyan}-- bouncer-on-board --${c.reset}  ${c.dim}"I'm Gate keeping" (v${VERSION})${c.reset}
 `);
 }
 
