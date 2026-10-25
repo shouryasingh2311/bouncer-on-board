@@ -52,14 +52,13 @@ We follow trunk-based development with short-lived, single-topic branches and sq
    git checkout main
    git pull origin main
    ```
-2. Create a topic branch using role prefixes:
-   - Core CLI & engines: `core/<feature>`
-   - Demos, eval & fixtures: `demo/<topic>`
-   - README & visuals: `docs/readme-<topic>`
-   - Community, legal & submission: `docs/community-<topic>`
+2. Create a topic branch using standard prefixes:
+   - Features: `feat/<feature-name>`
    - Bug fixes: `fix/<bug-name>`
-3. Follow conventional commit messages: `feat(pkg): ...`, `test(demo): ...`, `docs: ...`, `fix(guard): ...`.
-4. Keep PRs small (under 300 lines). Rebase onto `origin/main` before opening PRs.
+   - Documentation: `docs/<topic>`
+   - Tooling & CI: `chore/<topic>`
+3. Follow conventional commit messages: `feat(pkg): ...`, `test(pkg): ...`, `docs: ...`, `fix(guard): ...`.
+4. Keep PRs small and focused. Rebase onto `origin/main` before opening PRs.
 
 ---
 
