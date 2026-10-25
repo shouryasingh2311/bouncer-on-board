@@ -13,7 +13,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="pyproject.toml"><img src="https://img.shields.io/badge/Python-3.10%2B-blue.svg" alt="Python 3.10+"></a>
   <a href="package.json"><img src="https://img.shields.io/badge/npm-zero--dependency-brightgreen.svg" alt="Zero npm dependencies"></a>
-  <a href="tests"><img src="https://img.shields.io/badge/Tests-116%20passed-success.svg" alt="116 tests passed"></a>
+  <a href="tests"><img src="https://img.shields.io/badge/Tests-125%20passed-success.svg" alt="125 tests passed"></a>
   <a href="skills/bob/SKILL.md"><img src="https://img.shields.io/badge/IDE%20Skill-Claude%20%7C%20Antigravity%20%7C%20Cursor-orange.svg" alt="IDE Skills"></a>
   <a href="#benchmarks"><img src="https://img.shields.io/badge/Latency-%3C400ms-purple.svg" alt="Sub-400ms Interception"></a>
 </p>
@@ -22,6 +22,7 @@
   <a href="#quickstart">Quickstart</a> &bull;
   <a href="#why-bob-exists">Why BOB</a> &bull;
   <a href="#what-bob-does">Capabilities</a> &bull;
+  <a href="#threat-model">Threat Model</a> &bull;
   <a href="#architecture">Architecture</a> &bull;
   <a href="#ide-slash-commands">IDE Commands</a> &bull;
   <a href="#command-reference">CLI Reference</a> &bull;
@@ -50,12 +51,31 @@ AI coding agents run terminal commands autonomously. While they write code quick
 
 ## What BOB does
 
-- **Package Interception Gate**: Intercepts `pip`, `npm`, `yarn`, `pnpm`, and `uv` commands in real time. Blocks unregistered packages, typosquats, and packages under 14 days old before they download.
+- **Package Interception Gate**: Intercepts `pip`, `npm`, `yarn`, `pnpm`, `uv`, `poetry`, `pipx`, `conda`, `bun`, and `bunx` commands in real time. Blocks unregistered packages, typosquats, and suspicious packages before download.
+- **Recursive Command Unwrapping**: Strips evasion wrappers (`bash -c`, `sh -c`, `cmd /c`, `powershell -c`, `sudo`, `env VAR=val`) and normalizes binary paths (`/usr/bin/pip`) so agents cannot bypass checks by nesting commands.
+- **Remote Execution Pipeline Guard**: Detects and halts blind piped remote execution (`curl ... | bash`, `wget ... | sh`, `irm ... | iex`) before unverified remote code reaches shell interpreters.
 - **Static Archive Inspection**: Inspects archive bytes (`.tar.gz`, `.whl`) statically over HTTPS using Python's `ast.parse` and JSON parsers without running candidate scripts or using `eval`.
-- **Sensitive Path Protection**: Prevents coding agents from reading or modifying `.env`, `.ssh/`, `.aws/credentials`, or `.git/config`.
+- **Sensitive Path and Secret Dump Protection**: Prevents coding agents from reading or modifying `.env`, `.ssh/`, `.aws/credentials`, `.git/config`, or dumping bulk environment secrets (`printenv`, `export -p`, `env`).
 - **Prompt Injection Defense**: Evaluates markdown instructions, PR descriptions, and issue text for instruction-override phrases and credential-harvesting patterns before an agent reads them into context.
 - **Pre-Deploy Security Scanner**: Aggregates parallel static tripwires for hardcoded API keys (Anthropic, OpenAI, AWS, GCP, Stripe, Slack, JWT, DB URLs), SQL injection, dynamic eval, and unverified TLS.
 - **Zero-Token IDE-Native AI Triage**: When running inside Claude Code, Google Antigravity, or Cursor, BOB uses your active IDE model to explain findings and propose fix diffs in chat. External API keys or local Ollama instances are completely optional.
+
+---
+
+## Threat model
+
+### What BOB stops
+- **Hallucinated packages & slopsquatting**: Intercepts unverified or newly registered package names before download across PyPI and npm.
+- **Evasion via command wrapping**: Recursively unwraps `bash -c`, `sh -c`, `cmd /c`, `powershell -c`, `sudo`, `env VAR=val`, and normalized executable paths (`/usr/bin/pip`).
+- **Blind piped script execution**: Blocks `curl ... | bash`, `wget ... | sh`, `irm ... | iex` remote code execution pipelines.
+- **Sensitive credential exfiltration**: Blocks direct reads, copies, or inline scripts targeting `.env`, `.ssh/id_rsa`, `.aws/credentials`, or bulk environment dumps (`printenv`, `export -p`, `env`).
+- **Self-weakening**: Prohibits agents from editing `.bob/` or invoking `bob allow`.
+- **Pre-deploy secrets & tripwires**: Scans git working trees for hardcoded keys and insecure patterns with `.bobignore` filtering.
+
+### What BOB does not stop
+- **Direct kernel or raw syscall access**: If an agent has root/administrator privileges and compiles custom binaries or writes directly to raw devices, OS-level container isolation is required.
+- **Subtle business-logic flaws**: Heuristics catch known patterns and tripwires; they do not replace human code review.
+- **Offline zero-day packages**: A clean package with zero static tripwires and no active OSV advisory can still contain novel logic bombs.
 
 ---
 
@@ -309,7 +329,7 @@ bob audit --path ./backend
 ```
 
 #### `bob shim`
-Manages PATH wrapper shims for `pip`, `npm`, `yarn`, `pnpm`, and `uv`. Shims route terminal package installs through BOB before packages can run lifecycle scripts.
+Manages PATH wrapper shims for `pip`, `npm`, `npx`, `uv`, `pnpm`, `yarn`, `bun`, `bunx`, and `poetry`. Shims route terminal package installs through BOB before packages can run lifecycle scripts.
 
 ```bash
 bob shim install
@@ -378,6 +398,8 @@ Benchmark results comparing deterministic checks alone versus deterministic chec
 | `PKG-NO-PROVENANCE` | package | Warn (Exit 0) | Missing repository or homepage metadata |
 | `PKG-INSTALL-SCRIPT` | package | Block (Exit 2) | Suspicious script execution or credential reads in setup |
 | `GUARD-SENSITIVE-PATH` | guard | Block (Exit 2) | Direct agent read/write of `.env`, `.ssh/`, `*.pem` |
+| `GUARD-ENV-DUMP` | guard | Block (Exit 2) | Bulk environment secret dumping attempt (`printenv`, `export -p`, standalone `env`) |
+| `GUARD-REMOTE-EXEC` | execution | Block (Exit 2) | Unverified remote script piped to shell (`curl ... \| bash`, `irm ... \| iex`) |
 | `GUARD-BOB-SELF-PROTECT` | guard | Block (Exit 2) | Agent attempts to modify `.bob/` or call `bob allow` |
 | `BUILTIN-SECRET-*` | secret | Gate Block (Exit 1) | Hardcoded API keys (Anthropic, OpenAI, AWS, GCP, Stripe, Slack, JWT, DB URLs) |
 | `BUILTIN-CODE-*` | code | Gate Block (Exit 1) | SQL injection, dynamic eval, unverified TLS, shell=True |
@@ -402,10 +424,10 @@ Benchmark results comparing deterministic checks alone versus deterministic chec
 
 ## Limitations
 
-- Detects known patterns only; does not find business logic flaws or novel zero-day malware.
-- A newly published package that looks clean to heuristics can still be malicious.
-- `python -m pip` and other indirect invocations can bypass PATH shims; IDE hooks catch these where supported.
+- Detects known patterns and deterministic tripwires only; does not find novel zero-day exploits.
+- A newly published package that looks clean to heuristics can still contain latent malicious logic.
 - Registry or OSV network outages degrade online lookups (see `offline_policy`).
+- For complete OS-level isolation against arbitrary binary compilation, run agents inside sandboxed containers alongside BOB.
 
 ---
 
