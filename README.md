@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.png" alt="BOB Banner" width="100%">
+  <img src="docs/assets/banner-v2.png" alt="BOB Banner" width="100%">
 </p>
 
 # BOB (bouncer-on-board)
