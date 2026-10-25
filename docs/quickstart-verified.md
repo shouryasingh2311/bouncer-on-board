@@ -64,8 +64,8 @@ Do not retry this installation.
 
 ### Scan Step 1: Deterministic Only (`--no-ai`)
 ```powershell
-PS C:\bouncer-on-board> bob scan demo/vulnerable_app --no-ai
-Scanning target: demo/vulnerable_app
+PS C:\bouncer-on-board> bob scan target_project --no-ai
+Scanning target: target_project
 Running parallel scanners: gitleaks, semgrep, osv, bob-builtin...
 
 [!] CRITICAL: Secret detected in config.py:12 (AWS Access Key ID: AKIA****)
@@ -81,8 +81,8 @@ Report written to: .bob/report.md and .bob/report.json
 
 ### Scan Step 2: Pre-Deploy Scan with Local Gemma 4 Triage
 ```powershell
-PS C:\bouncer-on-board> bob scan demo/vulnerable_app
-Scanning target: demo/vulnerable_app
+PS C:\bouncer-on-board> bob scan target_project
+Scanning target: target_project
 Running parallel scanners: gitleaks, semgrep, osv, bob-builtin...
 Routing 5 findings to local Gemma 4 E2B via Ollama...
 

@@ -32,22 +32,21 @@ ENV/
 .coverage
 htmlcov/
 
-# IDE & Editor
+# IDE & Local Workspace Hooks
 .vscode/
 .idea/
 *.swp
 *.swo
+.agents/
 
-# BOB runtime artifacts (PROJECT.md & TEAM_PLAN.md Section 4)
+# BOB runtime artifacts
 .bob/
 **/.bob/cache/
 **/.bob/report.*
 **/.bob/log.jsonl
 *.gguf
 
-# Internal agent planning artifacts
+# Planning & local scratch
 .planning/
 
-# Exception: keep demo config tracked
-!demo/workdir/.bob/config.yaml
 

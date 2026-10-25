@@ -8,23 +8,20 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](pyproject.toml)
-[![Model: Gemma 4 E2B](https://img.shields.io/badge/Model-Gemma%204%20E2B%20(~5.1B)-orange.svg)](https://ollama.com/library/gemma4)
-[![Track: MLH Hacktoberfest](https://img.shields.io/badge/MLH-Best%20Open--Source%20AI%20Project-red.svg)](https://hacktoberfest.mlh.io/)
+[![Model: Gemma 4 / Gemini / OpenAI](https://img.shields.io/badge/AI%20Triage-Local%20%7C%20Cloud-orange.svg)](https://ollama.com/)
 
 Vibe-coding agents ship fast, but they blindly install hallucinated packages, trigger malicious install-time scripts (`preinstall` / `setup.py`), leak credentials via prompt injection, and commit unreviewed vulnerabilities. **BOB is a local-first bouncer that enforces a two-checkpoint zero-trust boundary around coding agents.**
 
 ---
 
-## 🏆 MLH Hackathon Track Checklist ("Best Open-Source AI Project")
+## ✨ Key Capabilities
 
-| Requirement | Implementation in BOB | Source / Verification |
-|:---|:---|:---|
-| **Small Language Model** | **Gemma 4 E2B** via Ollama (`gemma4:e2b`) | [Ollama Library](https://ollama.com/library/gemma4) / [Google Model Card](https://ai.google.dev/gemma) |
-| **Parameter Count** | **~5.1B total weights** / **~2.3B effective active** ($\le$ 10B limit) | Copied directly from Gemma 4 Model Card |
-| **Model Terms & License** | **Apache-2.0 License** | Open-weight $\ne$ automatically open-source; terms verified |
-| **Key Dependencies** | `typer`, `rich`, `httpx`, `pyyaml` (Runtime) | `gitleaks`, `semgrep`, OSV API (Optional scanners) |
-| **Project License** | **MIT License** | See [LICENSE](LICENSE) file |
-| **Visible AI Role** | Local SLM triage, plain-English explanations, verified diffs | Visible in demo CLI + with/without-AI eval benchmark |
+- **Live Pre-Action Interception (<400ms target)**: Intercepts `pip`, `npm`, and terminal actions via IDE hooks or PATH shims before malicious install-time scripts can execute.
+- **Supply Chain & Package Gate**: Statically verifies packages against embedded top-5,000 caches, human allowlists, release age, typosquatting heuristics, and live OSV advisories.
+- **Sensitive-Path Protection**: Blocks unauthorized agent read/write operations targeting `.env`, `.ssh/`, `.git/`, and cloud credential files.
+- **Prompt Injection Defense**: Scans text and markdown inputs for instruction-override phrases and credential-harvesting prompts.
+- **Pre-Deploy Security Scanner**: Aggregates parallel AST checks, secret finders, and external SARIF tools (`gitleaks`, `semgrep`).
+- **AI Triage & Patch Generation**: Integrates local open-weight SLMs (Gemma via Ollama) or Cloud AI (Google Gemini, OpenAI, Groq) for false-positive triage with strict **Security Axiom 2** enforcement (AI never downgrades Critical or High findings).
 
 ---
 
@@ -46,7 +43,7 @@ Vibe-coding agents ship fast, but they blindly install hallucinated packages, tr
 ```
 
 1. **Path 1 — `bob intercept` (Live, <400ms target, deterministic only):** Intercepts agent commands and file reads *before anything runs*. Scanning after installation is too late because npm lifecycle scripts and Python sdist builds execute code immediately upon download.
-2. **Path 2 — `bob scan` (Pre-deploy security gate):** Runs deterministic scanners (`gitleaks`, `semgrep`, OSV, built-ins) in parallel, then uses **local Gemma 4** to triage false positives, explain risks in plain English, and generate verified patches.
+2. **Path 2 — `bob scan` (Pre-deploy security gate):** Runs deterministic scanners (`gitleaks`, `semgrep`, OSV, built-ins) in parallel, then uses **local Gemma 4 or Cloud AI** to triage false positives, explain risks in plain English, and generate verified patches.
 
 *For full sequence diagrams and defense-in-depth layers, see [docs/architecture.md](docs/architecture.md).*
 
@@ -62,7 +59,7 @@ bob doctor
 
 ### Prerequisites
 - Python 3.10+
-- [Ollama](https://ollama.com/) running locally: `ollama run gemma4:e2b` (Optional, for local SLM triage)
+- [Ollama](https://ollama.com/) running locally: `ollama run gemma4:e2b` (Optional, for local SLM triage) or Google Gemini / OpenAI API key.
 
 ### Windows (PowerShell)
 ```powershell
@@ -71,8 +68,8 @@ git clone https://github.com/shouryasingh2311/bouncer-on-board.git; cd bouncer-o
 python -m venv .venv; .venv\Scripts\Activate.ps1
 pip install -e .
 bob doctor
-bob check-install pypi demo-good-lib
-bob scan demo/vulnerable_app --no-ai
+bob check-install pypi requests
+bob scan src --no-ai
 ```
 
 ### macOS / Linux (Bash)
@@ -81,19 +78,19 @@ git clone https://github.com/shouryasingh2311/bouncer-on-board.git && cd bouncer
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 bob doctor
-bob check-install pypi demo-good-lib
-bob scan demo/vulnerable_app --no-ai
+bob check-install pypi requests
+bob scan src --no-ai
 ```
 
-> **Deterministic Fallback by Design:** If Ollama is offline or Gemma 4 is not pulled, BOB automatically falls back to static rule explanation templates. BOB **never** crashes or fails closed into silence.
+> **Deterministic Fallback by Design:** If Ollama or Cloud AI is offline, BOB automatically falls back to static rule explanation templates. BOB **never** crashes or fails closed into silence.
 
 ---
 
-## 🧪 Live Demo & Judge Evaluation Walkthrough (Test in 2 Minutes)
+## 🧪 Interactive Examples & Walkthrough
 
-Judges and evaluators can verify all BOB capabilities using the included live demo assets in the repository:
+You can test BOB capabilities interactively in seconds:
 
-### Test 1: Package Gate Attack Defense (Blocks Typosquats & Hallucinations)
+### Example 1: Package Gate Attack Defense (Blocks Typosquats & Hallucinations)
 Simulate an AI agent attempting to download a hallucinated or typosquatted package:
 ```bash
 bob check-install pypi reqeusts
@@ -105,40 +102,40 @@ Reason: Package 'reqeusts' does not exist on PYPI (likely hallucinated).
 Do: remove it, ask the user, or pick a verified package. Do not retry this install.
 ```
 
-### Test 2: Prompt Injection Defense (`bob guard-text`)
-Simulate an AI agent reading an untrusted task prompt or README attempting instruction override and credential exfiltration:
+### Example 2: Prompt Injection Defense (`bob guard-text`)
+Simulate an AI agent evaluating untrusted instructions or prompt injection attempts:
 ```bash
-bob guard-text demo/malicious_prompt.md
+bob guard-text prompt.md
 ```
-**Expected Outcome**: Threat blocked before agent ingestion:
+**Expected Outcome**: Threats flagged before agent execution:
 ```
-BOB BLOCKED [BOB-0001] rule=INJ-001 file=demo/malicious_prompt.md
+BOB BLOCKED [BOB-0001] rule=INJ-001 file=prompt.md
 Reason: Instruction override phrase
-BOB BLOCKED [BOB-0002] rule=INJ-020 file=demo/malicious_prompt.md
+BOB BLOCKED [BOB-0002] rule=INJ-020 file=prompt.md
 Reason: Instruction to send secrets or env data to a URL
 ```
 
-### Test 3: Pre-Deploy Security Gate on Vulnerable App (`bob scan`)
-Scan the included vulnerable demo application (`demo/vulnerable_app`) containing hardcoded secrets, SQL injection, dynamic eval, and unverified TLS:
+### Example 3: Pre-Deploy Security Gate (`bob scan`)
+Scan any source tree for hardcoded secrets, SQL injection, dynamic eval, and unverified TLS:
 ```bash
-bob scan demo/vulnerable_app --no-ai
+bob scan src --no-ai
 ```
-**Expected Outcome**: Gate fails with exit code `1`, generating `.bob/report.md` and `.bob/report.json`:
+**Expected Outcome**: Generates `.bob/report.md` and `.bob/report.json`:
 ```
-BOB Pre-Deploy Scan Summary (demo/vulnerable_app)
+BOB Pre-Deploy Scan Summary (src)
 +------------------+
 | Severity | Count |
 |----------+-------|
-| CRITICAL | 4     |
-| HIGH     | 3     |
+| CRITICAL | 0     |
+| HIGH     | 0     |
 | MEDIUM   | 0     |
 | LOW      | 0     |
 | INFO     | 0     |
 +------------------+
-BOB SCAN GATE FAILED: 7 issue(s) matching fail policy ['critical', 'high'].
+0 known deterministic tripwires hit.
 ```
 
-### Test 4: Verify Single-Finding Fix (`bob verify`)
+### Example 4: Verify Single-Finding Fix (`bob verify`)
 Run `bob verify` against a finding fingerprint prefix (e.g. from `.bob/report.md`):
 ```bash
 bob verify 8a08c677ec
@@ -385,7 +382,7 @@ Deterministic scanners detect; the local SLM triages, explains, and suggests rem
 
 ## 📊 Evaluation & Benchmark Results
 
-To measure the real-world utility of the small language model, BOB runs `eval/run_eval.py` against planted true positives and documented test decoys in `demo/vulnerable_app`:
+To measure the real-world utility of the small language model, BOB was benchmarked against planted true positives and documented test decoys:
 
 | Evaluation Metric | Deterministic Only (`--no-ai`) | With Local Gemma 4 Triage | Impact / Delta |
 |:---|:---:|:---:|:---|
@@ -399,7 +396,7 @@ To measure the real-world utility of the small language model, BOB runs `eval/ru
 
 ---
 
-## ⚠️ Known Limitations (PROJECT.md Section 17)
+## ⚠️ Known Limitations
 
 - Detects known tripwires only; does not find business-logic flaws or novel malware; small local models can misjudge, so they never override deterministic criticals.
 - A newly published package that looks clean to heuristics can still be malicious.
@@ -413,8 +410,8 @@ To measure the real-world utility of the small language model, BOB runs `eval/ru
 
 - [Architecture & Diagrams](docs/architecture.md) — Comprehensive sequence and component flowcharts
 - [Verified Quickstart Run](docs/quickstart-verified.md) — Local execution traces and reproducible proof
-- [Usability Test Log](docs/usability-test.md) — Cold outside-reader verification log
 - [Agent Guard Skill](skills/bob-install-guard/SKILL.md) — Spec-compliant advisory agent skill
 - [Third-Party Notices](THIRD_PARTY_NOTICES.md) — Tool licenses, model terms, and dataset attributions
 - [Contributing Guide](CONTRIBUTING.md) — Development setup, testing, and adding detection rules
 - [License](LICENSE) — MIT License
+
