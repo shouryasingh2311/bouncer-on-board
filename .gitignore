@@ -45,5 +45,9 @@ htmlcov/
 **/.bob/log.jsonl
 *.gguf
 
+# Internal agent planning artifacts
+.planning/
+
 # Exception: keep demo config tracked
 !demo/workdir/.bob/config.yaml
+
