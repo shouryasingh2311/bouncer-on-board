@@ -31,7 +31,7 @@ When invoked via slash commands (`/bob`), your active IDE agent explains finding
 ## Workflows
 
 ### 1. Package checking (`/bob check`)
-Before running any package installation (`pip install`, `npm install`, `yarn add`, `pnpm add`, `uv add`), inspect the target package:
+Before running any package installation (`pip`, `npm`, `yarn`, `pnpm`, `uv`, `poetry`, `pipx`, `conda`, `bun`, `bunx`), inspect the target package:
 
 ```bash
 bob check-install pypi <package-name>[==version] --json
@@ -80,7 +80,7 @@ bob protect
 
 This configures:
 - Layer 1 (IDE Hook): Registers `.agents/hooks.json` (`PreToolUse`) where supported.
-- Layer 2 (OS Shims): Installs `~/.bob/shims` wrapping `pip`, `npm`, `yarn`, `pnpm`, and `uv` so agent terminal commands are inspected before execution.
+- Layer 2 (OS Shims): Installs `~/.bob/shims` wrapping `pip`, `npm`, `npx`, `uv`, `pnpm`, `yarn`, `bun`, `bunx`, and `poetry` so agent terminal commands are inspected before execution.
 
 ---
 

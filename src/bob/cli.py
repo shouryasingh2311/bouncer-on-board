@@ -26,7 +26,11 @@ from bob.ai.cloud_client import validate_cloud_credentials
 from bob.ai.triage import triage_findings
 from bob.banner import print_banner
 from bob.setup import run_setup_wizard
-from bob.cmdparse import extract_install_intents, parse_pkg_and_version
+from bob.cmdparse import (
+    check_dangerous_remote_execution,
+    extract_install_intents,
+    parse_pkg_and_version,
+)
 from bob.config import load_config
 from bob.guards.injection import (
     evaluate_injection_semantics,
@@ -350,6 +354,25 @@ def intercept(
         if adapter == "antigravity":
             console.print(json.dumps({"decision": "allow"}))
         raise typer.Exit(code=0)
+
+    # 0. Check dangerous remote execution (curl ... | bash, irm ... | iex)
+    remote_hit = check_dangerous_remote_execution(cmd_str)
+    if remote_hit:
+        reason = f"{remote_hit.title} ({remote_hit.evidence}). Piping remote code directly into a shell interpreter is prohibited."
+        append_audit_log({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "cmd": cmd_str,
+            "action": "block",
+            "rule_id": remote_hit.rule_id,
+            "reason": reason,
+        })
+        if adapter == "antigravity":
+            console.print(json.dumps({"decision": "deny", "reason": f"BOB BLOCKED [{remote_hit.id}] rule={remote_hit.rule_id} cmd={cmd_str}. {reason}"}))
+        else:
+            err_console.print(f"BOB BLOCKED [{remote_hit.id}] rule={remote_hit.rule_id} cmd={cmd_str}")
+            err_console.print(f"Reason: {reason}")
+            err_console.print("Do: inspect and verify the remote script before executing.")
+        raise typer.Exit(code=2)
 
     # 1. Check self-protection
     self_prot_hit = check_self_protection(cmd_str)

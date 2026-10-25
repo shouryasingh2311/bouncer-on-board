@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import PurePath
 import re
 import shlex
 from typing import List, Optional, Tuple
+
+from bob.models import Finding
 
 
 @dataclass
@@ -17,6 +20,106 @@ class InstallIntent:
     version: Optional[str] = None
     is_unverifiable: bool = False
     raw_target: str = ""
+
+
+SHELL_WRAPPERS = {
+    "bash", "sh", "zsh", "dash", "ash", "ksh", "csh", "tcsh", "cmd", "powershell", "pwsh"
+}
+
+REMOTE_EXEC_PATTERN = re.compile(
+    r"\b(curl|wget|fetch|http|irm|iwr|invoke-webrequest|invoke-restmethod)\b"
+    r"[^|;&\n]*"
+    r"\|"
+    r"\s*(sudo\s+)?"
+    r"([a-zA-Z0-9_\-\./\\]*[/\\])?"
+    r"\b(sh|bash|zsh|dash|ksh|python|python3|perl|ruby|node|iex|invoke-expression|pwsh|powershell)\b",
+    re.IGNORECASE,
+)
+
+
+def get_executable_name(token: str) -> str:
+    """Extract clean base executable name from token (e.g. /usr/bin/pip -> pip)."""
+    clean = token.strip("\"'")
+    norm = clean.replace("\\", "/")
+    base = PurePath(norm).name.lower()
+    for ext in (".exe", ".cmd", ".bat", ".sh"):
+        if base.endswith(ext):
+            base = base[:-len(ext)]
+            break
+    return base
+
+
+def unwrap_command(tokens: List[str], depth: int = 0) -> List[str]:
+    """Recursively strip sudo, nohup, env prefixes, variable assignments, and unwrap shell wrappers."""
+    if depth > 5 or not tokens:
+        return tokens
+
+    clean_tokens = [t.strip("\"'") for t in tokens if t.strip("\"'")]
+
+    while clean_tokens:
+        first_exe = get_executable_name(clean_tokens[0])
+        if first_exe in ("sudo", "nohup"):
+            clean_tokens = clean_tokens[1:]
+            while clean_tokens and clean_tokens[0].startswith("-"):
+                if clean_tokens[0] in ("-u", "-g", "-p", "-a", "-c", "-r", "-t") and len(clean_tokens) > 1:
+                    clean_tokens = clean_tokens[2:]
+                else:
+                    clean_tokens = clean_tokens[1:]
+            continue
+
+        if first_exe == "env":
+            clean_tokens = clean_tokens[1:]
+            while clean_tokens and clean_tokens[0].startswith("-"):
+                if clean_tokens[0] in ("-u", "-C", "-S") and len(clean_tokens) > 1:
+                    clean_tokens = clean_tokens[2:]
+                else:
+                    clean_tokens = clean_tokens[1:]
+            continue
+
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", clean_tokens[0]):
+            clean_tokens = clean_tokens[1:]
+            continue
+
+        break
+
+    if not clean_tokens:
+        return []
+
+    exe = get_executable_name(clean_tokens[0])
+    if exe in SHELL_WRAPPERS and len(clean_tokens) >= 2:
+        wrapper_flag_idx = -1
+        for idx, tok in enumerate(clean_tokens[1:], start=1):
+            if tok.lower() in ("-c", "/c", "-command", "/command"):
+                wrapper_flag_idx = idx
+                break
+        if wrapper_flag_idx != -1 and wrapper_flag_idx + 1 < len(clean_tokens):
+            inner_str = " ".join(clean_tokens[wrapper_flag_idx + 1:])
+            try:
+                inner_tokens = shlex.split(inner_str, posix=False)
+            except Exception:
+                inner_tokens = inner_str.split()
+            return unwrap_command(inner_tokens, depth=depth + 1)
+
+    return clean_tokens
+
+
+def check_dangerous_remote_execution(cmd_string: str) -> Optional[Finding]:
+    """Detect unverified remote scripts piped directly into a shell interpreter."""
+    m = REMOTE_EXEC_PATTERN.search(cmd_string)
+    if m:
+        snippet = m.group(0).strip()
+        return Finding(
+            id="BOB-0000",
+            rule_id="GUARD-REMOTE-EXEC",
+            source="bob-guard",
+            category="execution",
+            severity="critical",
+            title="Unverified remote script piped directly to shell interpreter",
+            file=None,
+            line=None,
+            evidence=snippet,
+        )
+    return None
 
 
 def split_pipeline(cmd_string: str) -> List[str]:
@@ -47,11 +150,13 @@ def parse_pkg_and_version(raw_spec: str, ecosystem: str) -> Tuple[str, Optional[
                 return name, ver
             return raw_spec, None
     else:
-        # PyPI: handle ==, >=, <=, ~=
+        # PyPI: handle ==, >=, <=, ~=, and strip extras [security]
         m = re.split(r"(==|>=|<=|~=|<|>)", raw_spec, maxsplit=1)
         if len(m) == 3:
-            return m[0].strip(), m[2].strip()
-        return raw_spec.strip(), None
+            name = re.sub(r"\[.*?\]", "", m[0]).strip()
+            return name, m[2].strip()
+        name = re.sub(r"\[.*?\]", "", raw_spec).strip()
+        return name, None
 
 
 def is_unverifiable_target(target: str) -> bool:
@@ -64,8 +169,11 @@ def is_unverifiable_target(target: str) -> bool:
     )
 
 
-def extract_install_intents(cmd_str: str) -> List[InstallIntent]:
-    """Extract install targets across Python (pip/uv) and Node (npm/npx/yarn/pnpm)."""
+def extract_install_intents(cmd_str: str, depth: int = 0) -> List[InstallIntent]:
+    """Extract install targets across Python (pip/uv/poetry/pipx/conda) and Node (npm/npx/yarn/pnpm/bun/bunx)."""
+    if depth > 5:
+        return []
+
     intents: List[InstallIntent] = []
     commands = split_pipeline(cmd_str)
 
@@ -82,47 +190,127 @@ def extract_install_intents(cmd_str: str) -> List[InstallIntent]:
         if not clean_tokens:
             continue
 
-        # Normalise executable name
-        exe = clean_tokens[0].lower().replace(".exe", "")
+        # 1. Strip wrappers and normalize
+        clean_tokens = unwrap_command(clean_tokens)
+        if not clean_tokens:
+            continue
 
-        # 1. Python: python -m pip install ... or py -m pip install ...
-        if exe in ("python", "python3", "py") and len(clean_tokens) >= 4:
-            if clean_tokens[1] == "-m" and clean_tokens[2].lower() in ("pip", "pip3"):
-                if clean_tokens[3].lower() == "install":
-                    _parse_pip_args(clean_tokens[4:], intents)
-                    continue
+        exe = get_executable_name(clean_tokens[0])
 
-        # 2. Python: pip / pip3 install ...
-        if exe in ("pip", "pip3") and len(clean_tokens) >= 2:
-            if clean_tokens[1].lower() == "install":
-                _parse_pip_args(clean_tokens[2:], intents)
+        # 2. Check for shell wrappers that were not unwrapped (e.g. bash -c "complex command")
+        if exe in SHELL_WRAPPERS and len(clean_tokens) >= 2:
+            wrapper_flag_idx = -1
+            for idx, tok in enumerate(clean_tokens[1:], start=1):
+                if tok.lower() in ("-c", "/c", "-command", "/command"):
+                    wrapper_flag_idx = idx
+                    break
+            if wrapper_flag_idx != -1 and wrapper_flag_idx + 1 < len(clean_tokens):
+                inner_cmd = " ".join(clean_tokens[wrapper_flag_idx + 1:])
+                inner_intents = extract_install_intents(inner_cmd, depth=depth + 1)
+                intents.extend(inner_intents)
                 continue
 
-        # 3. Python: uv pip install ... or uv add ...
-        if exe == "uv" and len(clean_tokens) >= 2:
-            if clean_tokens[1].lower() == "add":
-                _parse_pip_args(clean_tokens[2:], intents)
-                continue
-            if len(clean_tokens) >= 3 and clean_tokens[1].lower() == "pip" and clean_tokens[2].lower() == "install":
-                _parse_pip_args(clean_tokens[3:], intents)
+        # 3. Python: python -m pip/poetry/pipx/conda ...
+        if exe in ("python", "python3", "py") and len(clean_tokens) >= 3:
+            if clean_tokens[1] == "-m":
+                mod = clean_tokens[2].lower()
+                if mod in ("pip", "pip3", "pipx", "conda"):
+                    sub_idx = -1
+                    for idx, tok in enumerate(clean_tokens[3:], start=3):
+                        if tok.lower() == "install":
+                            sub_idx = idx
+                            break
+                    if sub_idx != -1:
+                        _parse_pip_args(clean_tokens[sub_idx + 1:], intents)
+                        continue
+                if mod == "poetry":
+                    sub_idx = -1
+                    for idx, tok in enumerate(clean_tokens[3:], start=3):
+                        if tok.lower() == "add":
+                            sub_idx = idx
+                            break
+                    if sub_idx != -1:
+                        _parse_pip_args(clean_tokens[sub_idx + 1:], intents)
+                        continue
+
+        # 4. Python: pip / pip3 install ...
+        if exe in ("pip", "pip3"):
+            sub_idx = -1
+            for idx, tok in enumerate(clean_tokens[1:], start=1):
+                if tok.lower() == "install":
+                    sub_idx = idx
+                    break
+            if sub_idx != -1:
+                _parse_pip_args(clean_tokens[sub_idx + 1:], intents)
                 continue
 
-        # 4. Node: npm install / i / add ...
-        if exe == "npm" and len(clean_tokens) >= 2:
-            sub = clean_tokens[1].lower()
-            if sub in ("install", "i", "add"):
-                _parse_npm_args(clean_tokens[2:], intents)
+        # 5. Python: uv pip install ... or uv add ...
+        if exe == "uv":
+            lower_tokens = [t.lower() for t in clean_tokens]
+            if "add" in lower_tokens:
+                add_idx = lower_tokens.index("add")
+                _parse_pip_args(clean_tokens[add_idx + 1:], intents)
+                continue
+            if "pip" in lower_tokens and "install" in lower_tokens:
+                inst_idx = lower_tokens.index("install")
+                _parse_pip_args(clean_tokens[inst_idx + 1:], intents)
                 continue
 
-        # 5. Node: pnpm add / yarn add ...
-        if exe in ("pnpm", "yarn") and len(clean_tokens) >= 2:
-            sub = clean_tokens[1].lower()
-            if sub in ("add", "install"):
-                _parse_npm_args(clean_tokens[2:], intents)
+        # 6. Python: poetry add ...
+        if exe == "poetry":
+            lower_tokens = [t.lower() for t in clean_tokens]
+            if "add" in lower_tokens:
+                add_idx = lower_tokens.index("add")
+                _parse_pip_args(clean_tokens[add_idx + 1:], intents)
                 continue
 
-        # 6. Node: npx <pkg> ...
-        if exe == "npx" and len(clean_tokens) >= 2:
+        # 7. Python: pipx install ...
+        if exe == "pipx":
+            lower_tokens = [t.lower() for t in clean_tokens]
+            if "install" in lower_tokens:
+                inst_idx = lower_tokens.index("install")
+                _parse_pip_args(clean_tokens[inst_idx + 1:], intents)
+                continue
+
+        # 8. Python / Conda: conda install ...
+        if exe == "conda":
+            lower_tokens = [t.lower() for t in clean_tokens]
+            if "install" in lower_tokens:
+                inst_idx = lower_tokens.index("install")
+                _parse_pip_args(clean_tokens[inst_idx + 1:], intents)
+                continue
+
+        # 9. Node: npm install / i / add ...
+        if exe == "npm":
+            for idx, tok in enumerate(clean_tokens[1:], start=1):
+                if tok.lower() in ("install", "i", "add"):
+                    _parse_npm_args(clean_tokens[idx + 1:], intents)
+                    break
+            continue
+
+        # 10. Node: pnpm / yarn add / install / dlx
+        if exe in ("pnpm", "yarn"):
+            lower_tokens = [t.lower() for t in clean_tokens]
+            if "dlx" in lower_tokens:
+                dlx_idx = lower_tokens.index("dlx")
+                _parse_npx_args(clean_tokens[dlx_idx + 1:], intents)
+                continue
+            for idx, tok in enumerate(clean_tokens[1:], start=1):
+                if tok.lower() in ("add", "install", "i"):
+                    _parse_npm_args(clean_tokens[idx + 1:], intents)
+                    break
+            continue
+
+        # 11. Node: bun add / install / i
+        if exe == "bun":
+            for idx, tok in enumerate(clean_tokens[1:], start=1):
+                if tok.lower() in ("add", "install", "i"):
+                    _parse_npm_args(clean_tokens[idx + 1:], intents)
+                    break
+            continue
+
+        # 12. Node: bunx / npx <pkg> ...
+        if exe in ("npx", "bunx") and len(clean_tokens) >= 2:
             _parse_npx_args(clean_tokens[1:], intents)
             continue
 
@@ -222,3 +410,4 @@ def _parse_npx_args(args: List[str], intents: List[InstallIntent]) -> None:
                 )
             )
         break
+

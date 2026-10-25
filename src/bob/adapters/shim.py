@@ -7,7 +7,18 @@ from pathlib import Path
 import stat
 from typing import List, Optional
 
-SHIM_COMMANDS = ["pip", "pip3", "npm", "npx", "uv"]
+SHIM_COMMANDS = [
+    "pip",
+    "pip3",
+    "npm",
+    "npx",
+    "uv",
+    "pnpm",
+    "yarn",
+    "bun",
+    "bunx",
+    "poetry",
+]
 
 
 def get_default_shims_dir() -> Path:

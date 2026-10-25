@@ -1,0 +1,10 @@
+# BOB Ignore Patterns
+# Ignore test fixtures and decoys used for security testing
+tests/*
+
+# Package and build artifacts
+node_modules/*
+.venv/*
+dist/*
+build/*
+.bob/*

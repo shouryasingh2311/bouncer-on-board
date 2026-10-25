@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" width="100%" height="100%" style="background: transparent; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="100%" stop-color="#070a10" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#131b2e" />
+      <stop offset="100%" stop-color="#0e1524" />
+    </linearGradient>
+    <linearGradient id="bobColGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#082f49" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#0c1929" stop-opacity="0.8" />
+    </linearGradient>
+    
+    <!-- Accent Gradients -->
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#b91c1c" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Container Box -->
+  <rect x="2" y="2" width="956" height="376" rx="14" fill="url(#bgGrad)" stroke="#1e293b" stroke-width="1.5" />
+
+  <!-- Header -->
+  <g transform="translate(32, 28)">
+    <rect x="0" y="2" width="4" height="22" rx="2" fill="url(#cyanGrad)" />
+    <text x="14" y="18" fill="#f8fafc" font-size="16" font-weight="700" letter-spacing="0.3">THE TIMING PROBLEM: WHY TRADITIONAL AUDIT TOOLS MISS AGENT ATTACKS</text>
+    <text x="14" y="38" fill="#64748b" font-size="12">Lifecycle comparison: Traditional CVE lockfile scanners vs. BOB real-time pre-execution firewall</text>
+  </g>
+
+  <!-- Column 1: Before Download -->
+  <g transform="translate(32, 85)">
+    <!-- Column Card Background -->
+    <rect x="0" y="0" width="280" height="265" rx="10" fill="url(#cardGrad)" stroke="#1e293b" stroke-width="1" />
+    
+    <!-- Stage Header -->
+    <rect x="14" y="14" width="76" height="20" rx="4" fill="#1e293b" />
+    <text x="52" y="28" fill="#94a3b8" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="0.5">PHASE 1</text>
+    <text x="14" y="52" fill="#f1f5f9" font-size="15" font-weight="700">Before Download</text>
+    <text x="14" y="68" fill="#64748b" font-size="11">Agent types install command in CLI</text>
+
+    <!-- Traditional Tool Row -->
+    <rect x="14" y="85" width="252" height="74" rx="6" fill="#161b26" stroke="#262e3d" stroke-width="1" />
+    <circle cx="28" cy="102" r="5" fill="#ef4444" />
+    <text x="40" y="106" fill="#ef4444" font-size="11" font-weight="700">Traditional Tools</text>
+    <text x="28" y="125" fill="#94a3b8" font-size="11">Does nothing. Terminal and IDE</text>
+    <text x="28" y="141" fill="#94a3b8" font-size="11">commands run completely unmonitored.</text>
+
+    <!-- BOB Row -->
+    <rect x="14" y="170" width="252" height="82" rx="6" fill="url(#bobColGrad)" stroke="#0284c7" stroke-width="1.2" />
+    <circle cx="28" cy="188" r="5" fill="#38bdf8" filter="url(#glow)" />
+    <text x="40" y="192" fill="#38bdf8" font-size="11" font-weight="700">BOB (bouncer-on-board)</text>
+    <text x="28" y="211" fill="#e2e8f0" font-size="11" font-weight="600">Pre-Execution Gate (&lt; 400ms)</text>
+    <text x="28" y="227" fill="#94a3b8" font-size="10.5">Checks package age, typo distance,</text>
+    <text x="28" y="241" fill="#94a3b8" font-size="10.5">and archive AST statically over HTTPS.</text>
+  </g>
+
+  <!-- Arrow 1 to 2 -->
+  <g transform="translate(320, 205)">
+    <path d="M 0 0 L 10 0 M 6 -4 L 10 0 L 6 4" stroke="#334155" stroke-width="2" fill="none" />
+  </g>
+
+  <!-- Column 2: During Download -->
+  <g transform="translate(340, 85)">
+    <!-- Column Card Background -->
+    <rect x="0" y="0" width="280" height="265" rx="10" fill="url(#cardGrad)" stroke="#1e293b" stroke-width="1" />
+    
+    <!-- Stage Header -->
+    <rect x="14" y="14" width="76" height="20" rx="4" fill="#1e293b" />
+    <text x="52" y="28" fill="#94a3b8" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="0.5">PHASE 2</text>
+    <text x="14" y="52" fill="#f1f5f9" font-size="15" font-weight="700">During Download</text>
+    <text x="14" y="68" fill="#64748b" font-size="11">Unpacking tarballs &amp; wheel files</text>
+
+    <!-- Traditional Tool Row -->
+    <rect x="14" y="85" width="252" height="74" rx="6" fill="#161b26" stroke="#262e3d" stroke-width="1" />
+    <circle cx="28" cy="102" r="5" fill="#ef4444" />
+    <text x="40" y="106" fill="#ef4444" font-size="11" font-weight="700">Traditional Tools</text>
+    <text x="28" y="125" fill="#ef4444" font-size="11" font-weight="600">Critical blindspot.</text>
+    <text x="115" y="125" fill="#94a3b8" font-size="11">preinstall scripts</text>
+    <text x="28" y="141" fill="#94a3b8" font-size="11">and setup.py execute malicious code.</text>
+
+    <!-- BOB Row -->
+    <rect x="14" y="170" width="252" height="82" rx="6" fill="url(#bobColGrad)" stroke="#0284c7" stroke-width="1.2" />
+    <circle cx="28" cy="188" r="5" fill="#38bdf8" filter="url(#glow)" />
+    <text x="40" y="192" fill="#38bdf8" font-size="11" font-weight="700">BOB (bouncer-on-board)</text>
+    <text x="28" y="211" fill="#e2e8f0" font-size="11" font-weight="600">Execution Prevented (Exit 2)</text>
+    <text x="28" y="227" fill="#94a3b8" font-size="10.5">Malicious code never touches disk;</text>
+    <text x="28" y="241" fill="#94a3b8" font-size="10.5">command halts before shell spawns.</text>
+  </g>
+
+  <!-- Arrow 2 to 3 -->
+  <g transform="translate(628, 205)">
+    <path d="M 0 0 L 10 0 M 6 -4 L 10 0 L 6 4" stroke="#334155" stroke-width="2" fill="none" />
+  </g>
+
+  <!-- Column 3: After Install -->
+  <g transform="translate(648, 85)">
+    <!-- Column Card Background -->
+    <rect x="0" y="0" width="280" height="265" rx="10" fill="url(#cardGrad)" stroke="#1e293b" stroke-width="1" />
+    
+    <!-- Stage Header -->
+    <rect x="14" y="14" width="76" height="20" rx="4" fill="#1e293b" />
+    <text x="52" y="28" fill="#94a3b8" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="0.5">PHASE 3</text>
+    <text x="14" y="52" fill="#f1f5f9" font-size="15" font-weight="700">After Install</text>
+    <text x="14" y="68" fill="#64748b" font-size="11">Pre-commit, PR &amp; pre-deploy audit</text>
+
+    <!-- Traditional Tool Row -->
+    <rect x="14" y="85" width="252" height="74" rx="6" fill="#161b26" stroke="#262e3d" stroke-width="1" />
+    <circle cx="28" cy="102" r="5" fill="#f59e0b" />
+    <text x="40" y="106" fill="#f59e0b" font-size="11" font-weight="700">Traditional Tools</text>
+    <text x="28" y="125" fill="#94a3b8" font-size="11">Scans lockfiles for known CVEs.</text>
+    <text x="28" y="141" fill="#ef4444" font-size="11">Credentials already exfiltrated.</text>
+
+    <!-- BOB Row -->
+    <rect x="14" y="170" width="252" height="82" rx="6" fill="url(#bobColGrad)" stroke="#0284c7" stroke-width="1.2" />
+    <circle cx="28" cy="188" r="5" fill="#38bdf8" filter="url(#glow)" />
+    <text x="40" y="192" fill="#38bdf8" font-size="11" font-weight="700">BOB (bouncer-on-board)</text>
+    <text x="28" y="211" fill="#e2e8f0" font-size="11" font-weight="600">Pre-Deploy Gate + AI Triage</text>
+    <text x="28" y="227" fill="#94a3b8" font-size="10.5">Parallel secret scanners, AST rules,</text>
+    <text x="28" y="241" fill="#94a3b8" font-size="10.5">and zero-token IDE AI fix diffs.</text>
+  </g>
+</svg>
