@@ -1,31 +1,31 @@
 <p align="center">
-  <img src="docs/assets/banner.png" alt="BOB — Bouncer-on-Board Banner" width="100%">
+  <img src="docs/assets/banner.png" alt="BOB Banner" width="100%">
 </p>
 
 # BOB (bouncer-on-board)
 
-> **Zero-Trust IDE Agent Firewall & Pre-Deploy Security Gatekeeper**
+> Zero-trust firewall and pre-deploy security gatekeeper for coding agents.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](pyproject.toml)
-[![Model: Gemma 4 / Gemini / OpenAI](https://img.shields.io/badge/AI%20Triage-Local%20%7C%20Cloud-orange.svg)](https://ollama.com/)
+[![AI Triage](https://img.shields.io/badge/AI%20Triage-Local%20%7C%20IDE%20Native-orange.svg)](skills/bob/SKILL.md)
 
-Vibe-coding agents ship fast, but they blindly install hallucinated packages, trigger malicious install-time scripts (`preinstall` / `setup.py`), leak credentials via prompt injection, and commit unreviewed vulnerabilities. **BOB is a local-first bouncer that enforces a two-checkpoint zero-trust boundary around coding agents.**
-
----
-
-## ✨ Key Capabilities
-
-- **Live Pre-Action Interception (<400ms target)**: Intercepts `pip`, `npm`, and terminal actions via IDE hooks or PATH shims before malicious install-time scripts can execute.
-- **Supply Chain & Package Gate**: Statically verifies packages against embedded top-5,000 caches, human allowlists, release age, typosquatting heuristics, and live OSV advisories.
-- **Sensitive-Path Protection**: Blocks unauthorized agent read/write operations targeting `.env`, `.ssh/`, `.git/`, and cloud credential files.
-- **Prompt Injection Defense**: Scans text and markdown inputs for instruction-override phrases and credential-harvesting prompts.
-- **Pre-Deploy Security Scanner**: Aggregates parallel AST checks, secret finders, and external SARIF tools (`gitleaks`, `semgrep`).
-- **AI Triage & Patch Generation**: Integrates local open-weight SLMs (Gemma via Ollama) or Cloud AI (Google Gemini, OpenAI, Groq) for false-positive triage with strict **Security Axiom 2** enforcement (AI never downgrades Critical or High findings).
+Coding agents move fast, but they can install hallucinated packages, run malicious build scripts (`preinstall`, `setup.py`), or commit leaked secrets. BOB catches these before they run.
 
 ---
 
-## 🛡️ Two-Checkpoint Architecture
+## What BOB does
+
+- Blocks dangerous `pip` and `npm` installs before lifecycle scripts execute.
+- Rejects unregistered packages, typosquats, and slopsquatting vectors before download.
+- Blocks unauthorized agent reads targeting `.env`, `.ssh/`, and cloud credentials.
+- Flags prompt injection inside markdown files, issues, and prompts before agents ingest them.
+- Scans code for hardcoded secrets, SQL injection, dynamic eval, and unverified TLS.
+- Explains findings with plain-English fixes using your IDE agent, local Gemma, or cloud AI. The AI cannot downgrade Critical or High findings.
+
+---
+
+## Architecture
 
 ```
                  ┌─────────────────────────────────────────────────────────────┐
@@ -42,20 +42,20 @@ Vibe-coding agents ship fast, but they blindly install hallucinated packages, tr
                  └─────────────────────────────────────────────────────────────┘
 ```
 
-1. **Path 1 — `bob intercept` (Live, <400ms target, deterministic only):** Intercepts agent commands and file reads *before anything runs*. Scanning after installation is too late because npm lifecycle scripts and Python sdist builds execute code immediately upon download.
-2. **Path 2 — `bob scan` (Pre-deploy security gate):** Runs deterministic scanners (`gitleaks`, `semgrep`, OSV, built-ins) in parallel, then uses **local Gemma 4 or Cloud AI** to triage false positives, explain risks in plain English, and generate verified patches.
+1. **Pre-execution gate (`bob intercept`)**: Intercepts commands and file reads before anything runs. Scanning after an install finishes is too late: npm lifecycle scripts and Python sdist packages run arbitrary code during download. Target latency is under 400ms using deterministic rules.
+2. **Pre-deploy gate (`bob scan`)**: Runs deterministic scanners in parallel (secrets, AST checks, CVEs), then uses your active IDE model or local Gemma to explain risks and generate fix diffs.
 
-*For full sequence diagrams and defense-in-depth layers, see [docs/architecture.md](docs/architecture.md).*
+For full sequence diagrams and defense layers, see [docs/architecture.md](docs/architecture.md).
 
 ---
 
-## ⚡ 60-Second Quickstart
+## Quickstart
 
-### 1. Instant Install via NPX (Zero Setup)
+### 1. Install via npx or npm
 Install BOB globally or deploy it directly into your current workspace:
 
 ```bash
-# Interactive setup & universal IDE skill deployment:
+# Interactive setup and universal IDE skill deployment:
 npx bouncer-on-board install
 
 # Or install globally via npm:
@@ -63,47 +63,49 @@ npm install -g bouncer-on-board
 bob doctor
 ```
 
-### 2. Python Quick Install
+### 2. Install via Python
 ```bash
 pip install git+https://github.com/shouryasingh2311/bouncer-on-board.git
 bob doctor
 ```
 
-### 3. Universal IDE Skill (`/bob`)
-Once installed, BOB operates natively inside your preferred IDE via slash commands:
+### 3. IDE slash commands (`/bob`)
+Once installed, BOB operates natively inside your preferred IDE:
 
-| IDE / Environment | How BOB Integrates | Primary Slash Commands |
+| IDE / Environment | Integration | Primary Slash Commands |
 |:---|:---|:---|
 | **Claude Code** | Global Skill (`~/.claude/skills/bob/SKILL.md`) + PATH shims | `/bob scan`, `/bob check <pypi\|npm> <pkg>`, `/bob doctor` |
 | **Google Antigravity** | Workspace Skill (`~/.gemini/config/skills/bob/SKILL.md`) + PreToolUse Hook | `/bob scan`, `/bob check <pypi\|npm> <pkg>`, `/bob protect` |
-| **Cursor / VS Code** | Cursor Rules (`.cursor/rules/bob.mdc`) + Terminal Environment shims | `/bob scan`, `/bob guard <file>`, `/bob doctor` |
+| **Cursor / VS Code** | Cursor Rules (`.cursor/rules/bob.mdc`) + Terminal shims | `/bob scan`, `/bob guard <file>`, `/bob doctor` |
 
-> **💡 Zero-Token IDE-Native AI:** When used as an IDE skill, external AI endpoints (Ollama, Gemini, OpenAI) are completely optional (`ai_provider: "ide_native"`). The host IDE's active AI model (Claude 3.7, Gemini 2.5, GPT-4o) directly reviews BOB's structured findings and generates patches in chat!
+> When BOB runs as an IDE skill, external AI endpoints (Ollama, Gemini, OpenAI) are optional (`ai_provider: "ide_native"`). The active model in your IDE (Claude, Gemini, Cursor) directly reviews findings and proposes fixes in chat.
 
 ---
 
-## 🧪 Interactive Examples & Walkthrough
+## Examples
 
-You can test BOB capabilities interactively in seconds:
+### Catching typosquats and hallucinated packages
+Simulate an agent attempting to download a hallucinated or typosquatted package:
 
-### Example 1: Package Gate Attack Defense (Blocks Typosquats & Hallucinations)
-Simulate an AI agent attempting to download a hallucinated or typosquatted package:
 ```bash
 bob check-install pypi reqeusts
 ```
-**Expected Outcome**: Instant exit code `2` block:
+
+Output:
 ```
 BOB BLOCKED [BOB-0001] rule=PKG-NOT-FOUND package=reqeusts
-Reason: Package 'reqeusts' does not exist on PYPI (likely hallucinated).
+Reason: Package 'reqeusts' does not exist on PYPI (likely AI hallucinated / slopsquatting vector).
 Do: remove it, ask the user, or pick a verified package. Do not retry this install.
 ```
 
-### Example 2: Prompt Injection Defense (`bob guard-text`)
-Simulate an AI agent evaluating untrusted instructions or prompt injection attempts:
+### Catching prompt injection in issues and docs
+Check untrusted instructions or documentation before an agent ingests them:
+
 ```bash
 bob guard-text prompt.md
 ```
-**Expected Outcome**: Threats flagged before agent execution:
+
+Output:
 ```
 BOB BLOCKED [BOB-0001] rule=INJ-001 file=prompt.md
 Reason: Instruction override phrase
@@ -111,12 +113,14 @@ BOB BLOCKED [BOB-0002] rule=INJ-020 file=prompt.md
 Reason: Instruction to send secrets or env data to a URL
 ```
 
-### Example 3: Pre-Deploy Security Gate (`bob scan`)
+### Scanning code before commit or deploy
 Scan any source tree for hardcoded secrets, SQL injection, dynamic eval, and unverified TLS:
+
 ```bash
 bob scan src --no-ai
 ```
-**Expected Outcome**: Generates `.bob/report.md` and `.bob/report.json`:
+
+Output:
 ```
 BOB Pre-Deploy Scan Summary (src)
 +------------------+
@@ -131,83 +135,78 @@ BOB Pre-Deploy Scan Summary (src)
 0 known deterministic tripwires hit.
 ```
 
-### Example 4: Verify Single-Finding Fix (`bob verify`)
-Run `bob verify` against a finding fingerprint prefix (e.g. from `.bob/report.md`):
+### Verifying a fix without rescanning everything
+Re-test the specific rule that flagged an issue:
+
 ```bash
 bob verify 8a08c677ec
 ```
-**Expected Outcome**: Re-tests originating rule without having to rescan the entire project.
 
-### Test 5: Switch AI Intelligence Modes (`bob setup` & `bob doctor`)
-Configure local Gemma via Ollama, Cloud AI (Google Gemini, OpenAI, Groq), or 100% offline Pure Deterministic Mode:
+### Checking system status
+Verify runtime dependencies, active shims, and configured AI provider:
+
 ```bash
-bob setup
 bob doctor
 ```
 
 ---
 
-## 💻 CLI Reference & Complete Command Guide
-
-### Master Command Quick Reference
+## Commands
 
 | Command | Purpose | Key Flags | Exit Codes |
 |:---|:---|:---|:---|
-| [`bob setup`](#1-bob-setup) | Interactive onboarding assistant for AI models & IDE protection | *None (interactive wizard)* | `0` success |
+| [`bob setup`](#1-bob-setup) | Interactive onboarding assistant for AI models and IDE protection | *None (interactive wizard)* | `0` success |
 | [`bob protect`](#2-bob-protect) | Configure automated interception hooks for IDE workspaces | `[path]`, `--ide` | `0` success |
-| [`bob check-install`](#3-bob-check-install) | Manual package gate inspection (typos, age, scripts, CVEs) | `<ecosystem>`, `<pkg>`, `--json` | `0` allow, `2` block |
-| [`bob intercept`](#4-bob-intercept) | Live pre-execution gatekeeper for agent commands & sensitive paths | `--cmd`, `--adapter`, `--path` | `0` allow, `2` block |
-| [`bob scan`](#5-bob-scan) | Pre-deploy security gate & SARIF scan with local Gemma triage | `[path]`, `--no-ai`, `--out-dir` | `0` pass, `1` blocked |
-| [`bob verify`](#6-bob-verify) | Re-run originating tripwire to verify a patch resolved finding | `<fingerprint-prefix>` | `0` fixed, `1` still failing |
-| [`bob guard-text`](#7-bob-guard-text) | Detect prompt injection in docs/issues before agent ingests it | `<path>`, `--ai` | `0` clean, `2` threat |
-| [`bob audit`](#8-bob-audit) | Scan project lockfiles against OSV open-source vulnerability database | `[--path]` | `0` clean, `1` vulnerable |
-| [`bob shim`](#9-bob-shim) | Manage L2 terminal PATH wrapper scripts for package managers | `install`, `uninstall` | `0` success |
-| [`bob allow`](#10-bob-allow) | **Human-only** allowlist entry in `.bob/allowlist.yaml` | `<pkg>`, `--ecosystem` | `0` success |
-| [`bob doctor`](#11-bob-doctor) | System environment diagnostics, scanner checks & Ollama latency | *None* | `0` ready |
+| [`bob check-install`](#3-bob-check-install) | Inspect a package before installation (typos, age, scripts, CVEs) | `<ecosystem>`, `<pkg>`, `--json` | `0` allow, `2` block |
+| [`bob intercept`](#4-bob-intercept) | Pre-execution gatekeeper for agent commands and sensitive paths | `--cmd`, `--adapter`, `--path` | `0` allow, `2` block |
+| [`bob scan`](#5-bob-scan) | Pre-deploy security gate and SARIF scan with AI triage | `[path]`, `--no-ai`, `--out-dir` | `0` pass, `1` blocked |
+| [`bob verify`](#6-bob-verify) | Re-run originating tripwire to verify a fix | `<fingerprint-prefix>` | `0` fixed, `1` still failing |
+| [`bob guard-text`](#7-bob-guard-text) | Detect prompt injection in docs and issues | `<path>`, `--ai` | `0` clean, `2` threat |
+| [`bob audit`](#8-bob-audit) | Scan project lockfiles against the OSV database | `[--path]` | `0` clean, `1` vulnerable |
+| [`bob shim`](#9-bob-shim) | Manage terminal PATH wrapper scripts for package managers | `install`, `uninstall` | `0` success |
+| [`bob allow`](#10-bob-allow) | Human-only allowlist entry in `.bob/allowlist.yaml` | `<pkg>`, `--ecosystem` | `0` success |
+| [`bob doctor`](#11-bob-doctor) | Diagnostics for scanners, shims, and model connection | *None* | `0` ready |
 
 ---
 
-### Detailed Command Guide & Usage
+### Command details
 
 #### 1. `bob setup`
-Interactive, beginner-friendly onboarding assistant. Guides developers through configuring their AI model provider and setting up IDE workspace protection in two quick steps.
+Interactive setup assistant. Guides you through configuring your AI provider and setting up IDE workspace protection.
 
 ```bash
-# Launch interactive setup
 bob setup
 ```
 
-- **Step 1 (AI Provider)**: Choose between:
-  1. *Local Ollama* (auto-detects local Ollama server on `localhost:11434`, pulls or selects Gemma 4 / Gemma 2).
-  2. *Cloud AI APIs* (configures Gemini, OpenAI, Anthropic, DeepSeek, OpenRouter, or Groq with an API key).
-  3. *Deterministic Rule Engine* (offline, zero external AI dependencies).
-- **Step 2 (IDE Protection)**: Choose your editor (VS Code, Google Antigravity, Cursor, Windsurf, or Generic) to automatically scaffold pre-execution interception hooks and agent firewall rules.
+- Step 1 (AI Provider): Choose IDE-Native AI (recommended for IDE skills), local Ollama (Gemma), cloud APIs (Gemini, OpenAI, Groq), or pure deterministic mode.
+- Step 2 (IDE Protection): Choose your editor (VS Code, Google Antigravity, Cursor, Claude Code, or all) to configure hooks and shims.
 
 ---
 
 #### 2. `bob protect`
-Scaffolds automated pre-execution interception hooks, IDE tasks, and zero-trust agent firewall guidelines inside a project workspace.
+Configures pre-execution interception hooks, rules, and PATH shims in a workspace.
 
 ```bash
-# Protect current workspace (auto-detects IDE)
+# Protect current workspace
 bob protect
 
 # Protect a specific project folder for VS Code
 bob protect /path/to/project --ide vscode
 
-# Protect for Google Antigravity / Cursor
+# Protect for Google Antigravity
 bob protect . --ide antigravity
 ```
 
-- **What it configures**:
-  - `.agents/rules/bob-agent-firewall.md` — Mandatory instructions instructing AI coding agents to route shell commands through BOB.
-  - `.vscode/tasks.json` — Pre-install and pre-commit task triggers.
-  - Verifies local `.bob/` configuration state.
+What it configures:
+- `.agents/hooks.json` (Antigravity pre-tool-use hook)
+- `.cursor/rules/bob.mdc` (Cursor rule instructions)
+- `.vscode/settings.json` (Terminal PATH interception for VS Code and Cursor)
+- `~/.bob/shims` (Global wrapper shims for terminal commands)
 
 ---
 
 #### 3. `bob check-install`
-Manually inspects a package before installing it. Evaluates typosquatting distance against popular packages, package release age, download metrics, hidden install-time scripts (`preinstall`, `setup.py`), and known vulnerabilities via OSV.
+Inspects a package before installing it. Evaluates name similarity against top packages, release age, download metrics, install-time scripts (`preinstall`, `setup.py`), and OSV advisories.
 
 ```bash
 # Inspect a safe PyPI package
@@ -216,198 +215,174 @@ bob check-install pypi requests
 # Check a specific version of an npm package
 bob check-install npm express==4.18.2
 
-# Check a suspicious typosquatted package (will block with exit code 2)
+# Check a typosquatted package (blocks with exit code 2)
 bob check-install pypi reqeusts
 
 # Output structured JSON result for CI/CD scripting
 bob check-install pypi demo-malicious-pkg --json
 ```
 
-- **Exit Codes**: `0` = Allowed (or Low warning); `2` = Blocked (Quarantined/Critical risk).
+Exit codes: `0` = Allowed; `2` = Blocked.
 
 ---
 
 #### 4. `bob intercept`
-The high-speed pre-execution hook entrypoint (<400ms target). Executed automatically by IDE agent hooks, wrapper shims, or terminal wrappers before any command touches the operating system or file system.
+Synchronous pre-execution hook entrypoint. Called automatically by IDE hooks and PATH shims before any command touches the system.
 
 ```bash
-# Intercept an agent command intending to install a package
+# Intercept an install command
 bob intercept --adapter generic --cmd "pip install reqeusts"
 
-# Intercept a command attempting to read sensitive credential files
+# Intercept an attempt to read sensitive credential files
 bob intercept --adapter generic --cmd "cat ~/.ssh/id_rsa"
 
 # Intercept a direct file read probe
 bob intercept --adapter generic --path ".env"
 ```
 
-- **Protection Scope**:
-  - Blocks typosquatted or non-existent hallucinated packages.
-  - Blocks execution of packages containing malicious install-time hooks.
-  - Blocks unauthorized access to sensitive credential files (`.env`, `.ssh/`, `.aws/`, `.git/config`).
-  - Blocks tamper attempts against BOB itself (`rm -rf .bob`).
-- **Exit Codes**: `0` = Allow command; `2` = Block command with plain-English explanation.
+Protection scope:
+- Blocks typosquatted or non-existent packages (slopsquatting).
+- Blocks packages containing malicious install-time hooks.
+- Blocks unauthorized access to sensitive credential files (`.env`, `.ssh/`, `.aws/`, `.git/config`).
+- Blocks tampering attempts against `.bob/`.
+
+Exit codes: `0` = Allow; `2` = Block.
 
 ---
 
 #### 5. `bob scan`
-The pre-deploy zero-trust security gatekeeper. Runs parallel deterministic tripwires (`gitleaks`, `semgrep`, OSV dependency scan, and built-in AST checks), then invokes the local Small Language Model (Gemma 4 SLM) to triage false positives, explain root causes, and produce verified remediation diffs.
+Pre-deploy security gate. Runs parallel scanners (`gitleaks`, `semgrep`, OSV, and built-in AST checks), then invokes your configured AI provider to triage false positives, explain root causes, and produce fix diffs.
 
 ```bash
-# Run full scan with local AI triage and explanations
+# Run full scan with AI triage and explanations
 bob scan .
 
-# Run deterministic scan only (faster, zero AI dependencies)
+# Run deterministic scan only (faster, zero AI calls)
 bob scan ./src --no-ai
 
-# Specify custom output directory for SARIF and Markdown reports
+# Specify custom output directory for reports
 bob scan . --out-dir ./audit-reports
 ```
 
-- **Outputs**:
-  - Formatted terminal report with severity breakdown.
-  - `.bob/reports/scan_report.md` — Detailed report with code snippets, CWEs, and suggested diffs.
-  - `.bob/reports/scan_report.sarif` — Standard SARIF format for GitHub Security and IDE integration.
-- **Exit Codes**: `0` = Passed (zero Critical/High findings); `1` = Gate failed (Critical or High findings detected).
+Outputs:
+- Terminal summary table.
+- `.bob/report.md` (Detailed report with code snippets, CWEs, and suggested diffs).
+- `.bob/report.json` and standard SARIF report.
+
+Exit codes: `0` = Passed; `1` = Gate failed (Critical or High findings detected).
 
 ---
 
 #### 6. `bob verify`
-Re-runs the exact originating tripwire check that flagged a vulnerability to mathematically prove whether your code patch fixed the issue before committing.
+Re-runs the exact check that flagged a vulnerability to confirm whether your code patch resolved it.
 
 ```bash
-# Verify a specific finding using its fingerprint prefix from bob scan
+# Verify a specific finding using its fingerprint prefix
 bob verify sec-001
-
-# Verify after editing code to ensure secret or bug is eliminated
-bob verify vuln-3a7b
 ```
 
-- **Exit Codes**: `0` = Verified fixed; `1` = Finding still active (patch unsuccessful).
+Exit codes: `0` = Fixed; `1` = Finding still active.
 
 ---
 
 #### 7. `bob guard-text`
-Scans untrusted markdown files, issue templates, PR descriptions, or documentation for prompt injection payloads, instruction overrides, and data exfiltration markers before an AI coding agent ingests them into its context window.
+Scans markdown files, issue templates, PR descriptions, or documentation for prompt injection payloads and data exfiltration markers before an agent reads them.
 
 ```bash
 # Scan a documentation file for prompt injection
 bob guard-text docs/untrusted_issue.md
-
-# Scan with second-opinion SLM semantic evaluation
-bob guard-text README.md --ai
 ```
 
-- **Exit Codes**: `0` = Clean (safe for agent ingestion); `2` = Threat detected (prompt injection or instruction hijack found).
+Exit codes: `0` = Clean; `2` = Threat detected.
 
 ---
 
 #### 8. `bob audit`
-Scans all dependency lockfiles in the current workspace against the open-source OSV vulnerability database. Supports `requirements.txt`, `package-lock.json`, `pnpm-lock.yaml`, `Pipfile.lock`, and `poetry.lock`.
+Scans dependency lockfiles against the OSV vulnerability database. Supports `requirements.txt`, `package-lock.json`, `pnpm-lock.yaml`, `Pipfile.lock`, and `poetry.lock`.
 
 ```bash
-# Audit current repository dependencies
 bob audit
-
-# Audit a specific directory or microservice
 bob audit --path ./backend
 ```
 
-- **Exit Codes**: `0` = Clean (no known CVE advisories); `1` = Vulnerable dependencies found.
+Exit codes: `0` = Clean; `1` = Vulnerabilities found.
 
 ---
 
 #### 9. `bob shim`
-Installs or uninstalls lightweight PATH wrapper shims for standard package managers (`pip`, `npm`, `npx`, `uv`). Shims automatically route command-line package installations through BOB's pre-execution gate before packages can execute lifecycle scripts.
+Manages PATH wrapper shims for `pip`, `npm`, `yarn`, `pnpm`, and `uv`. Shims route terminal package installs through BOB before packages can run lifecycle scripts.
 
 ```bash
-# Install PATH wrapper shims
 bob shim install
-
-# Uninstall PATH wrapper shims
 bob shim uninstall
 ```
-
-- **Exit Codes**: `0` = Success.
 
 ---
 
 #### 10. `bob allow`
-Human-only override mechanism. Permits a human developer to explicitly allow a flagged or unreleased package by recording their username, reason, and timestamp in `.bob/allowlist.yaml`. AI coding agents are strictly forbidden from executing this command.
+Human-only override. Allows a developer to permit a flagged package by recording their name, reason, and timestamp in `.bob/allowlist.yaml`. AI agents are blocked from running this command.
 
 ```bash
-# Allow an internal private or flagged PyPI package
 bob allow my-private-company-pkg
-
-# Allow an npm package
 bob allow @internal/custom-lib --ecosystem npm
 ```
-
-- **Exit Codes**: `0` = Package recorded in `.bob/allowlist.yaml`.
 
 ---
 
 #### 11. `bob doctor`
-Runs a full health check on the local system environment, reporting installed scanner binaries (`gitleaks`, `semgrep`), Ollama connectivity and model response latency, configured provider, active IDE protection, and PATH shim status.
+Health check for system environment, installed scanners (`gitleaks`, `semgrep`), Node.js bridge, active shims, and configured AI provider.
 
 ```bash
-# Run system diagnostic health check
 bob doctor
 ```
 
-- **Exit Codes**: `0` = System ready.
-
 ---
 
-## 🤖 The AI's Role (Gemma 4 SLM)
+## How AI triage works
 
-Deterministic scanners detect; the local SLM triages, explains, and suggests remedies. Input to language models can be adversarial, so BOB enforces strict code-level guardrails:
+Deterministic scanners detect findings; the AI triages, explains, and suggests fixes. Because input can be adversarial, BOB enforces strict code-level guardrails:
 
-| What Gemma 4 Does | What Gemma 4 NEVER Does |
+| What the AI does | What the AI cannot do |
 |:---|:---|
-| ✅ Explains flagged security issues in plain English | ❌ **NEVER** detects vulnerabilities directly |
-| ✅ Generates contextual patch diffs and fix snippets | ❌ **NEVER** overrides or down-ranks Critical / High findings |
-| ✅ Down-ranks noisy Medium / Low false positives with review note | ❌ **NEVER** approves an untrusted or blocked package |
-| ✅ Optional second-opinion advisory on prompt injection text | ❌ **NEVER** auto-applies code patches or edits files |
-| ✅ Runs 100% locally on `localhost:11434` (no source leaks) | ❌ **NEVER** executes inside the live interception path |
+| Explains flagged security issues in plain English | Detect vulnerabilities from scratch |
+| Generates fix diffs for developer review | Override or downgrade Critical or High findings |
+| Annotates test decoys with review notes | Approve an untrusted or blocked package |
+| Provides second opinions on prompt text | Apply code changes automatically without review |
+| Runs locally on your machine or inside your IDE | Run inside the live interception path |
 
-> [!CAUTION]
-> **Zero Findings Posture:** `0 known deterministic tripwires hit. This does not guarantee the absence of business-logic vulnerabilities.` BOB never claims to be "100% secure" or "bulletproof."
+> Clean scan message: `0 known deterministic tripwires hit. This does not guarantee the absence of business-logic vulnerabilities.` BOB reports deterministic results plainly without claiming to be unbreakable.
 
 ---
 
-## 📊 Evaluation & Benchmark Results
+## Benchmarks
 
-To measure the real-world utility of the small language model, BOB was benchmarked against planted true positives and documented test decoys:
+Benchmark results comparing deterministic checks alone versus deterministic checks with local Gemma triage:
 
-| Evaluation Metric | Deterministic Only (`--no-ai`) | With Local Gemma 4 Triage | Impact / Delta |
+| Metric | Deterministic only (`--no-ai`) | With local Gemma triage | Result |
 |:---|:---:|:---:|:---|
-| **True Positives Detected** | 8 / 8 (100%) | 8 / 8 (100%) | Zero regression; all critical threats caught |
-| **Planted Test Decoys Flagged** | 3 / 3 (100% false alarms) | 0 / 3 (triaged to review) | **100% reduction** in noisy false-alarm blocks |
-| **Critical / High Findings Preserved** | 100% | 100% | Hard security invariant: AI never overrides high |
-| **Fix Verification Rate (`bob verify`)** | N/A | **100% verified** | Proves proposed patch clears original tripwire |
-| **Scan Latency** | ~0.8s | ~3.4s (local E2B) | Edge-friendly, runs entirely on CPU/laptop |
-
-*The model cannot override critical security findings, but successfully eliminates alert fatigue by identifying dummy test keys and generating verified remediation diffs.*
+| True Positives Detected | 8 / 8 (100%) | 8 / 8 (100%) | All critical threats caught |
+| Planted Test Decoys Flagged | 3 / 3 (false alarms) | 0 / 3 (triaged to review) | Eliminates alert fatigue from test files |
+| Critical / High Findings Preserved | 100% | 100% | Invariant: AI never overrides high severity |
+| Fix Verification (`bob verify`) | N/A | 100% verified | Confirms proposed patch clears the tripwire |
+| Scan Latency | ~0.8s | ~3.4s (local E2B) | Runs on CPU without specialized hardware |
 
 ---
 
-## ⚠️ Known Limitations
+## Limitations
 
-- Detects known tripwires only; does not find business-logic flaws or novel malware; small local models can misjudge, so they never override deterministic criticals.
+- Detects known patterns only; does not find business logic flaws or novel zero-day malware.
 - A newly published package that looks clean to heuristics can still be malicious.
-- `python -m pip` and other indirect installs can bypass PATH shims; IDE-hook parsing mitigates this where hooks exist.
-- IDE hook coverage depends on the IDE's documented capabilities.
-- Registry or OSV outages degrade checks (see `offline_policy`).
+- `python -m pip` and other indirect invocations can bypass PATH shims; IDE hooks catch these where supported.
+- Registry or OSV network outages degrade online lookups (see `offline_policy`).
 
 ---
 
-## 📖 Documentation & Community
+## Documentation
 
-- [Architecture & Diagrams](docs/architecture.md) — Comprehensive sequence and component flowcharts
-- [Verified Quickstart Run](docs/quickstart-verified.md) — Local execution traces and reproducible proof
-- [Universal Agent Skill](skills/bob/SKILL.md) — Universal slash command skill for Claude Code, Cursor, and Antigravity
-- [Third-Party Notices](THIRD_PARTY_NOTICES.md) — Tool licenses, model terms, and dataset attributions
-- [Contributing Guide](CONTRIBUTING.md) — Development setup, testing, and adding detection rules
-- [License](LICENSE) — MIT License
-
+- [Architecture](docs/architecture.md): Sequence diagrams and defense layers
+- [Verified run](docs/quickstart-verified.md): Execution traces and reproducible proof
+- [Universal skill](skills/bob/SKILL.md): Slash commands for Claude Code, Cursor, and Antigravity
+- [Third-party notices](THIRD_PARTY_NOTICES.md): Tool licenses and model terms
+- [Contributing guide](CONTRIBUTING.md): Setup, testing, and adding rules
+- [Security policy](SECURITY.md): Vulnerability reporting instructions
+- [License](LICENSE): MIT License

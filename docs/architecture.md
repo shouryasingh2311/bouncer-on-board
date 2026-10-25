@@ -1,36 +1,36 @@
-# BOB Architecture & Visual Technical Specification
+# BOB Architecture
 
-This document details the architectural principles, threat models, and component workflows of **BOB (`bouncer-on-board`)**, an open-source, local-first security tool for the vibe-coding era.
-
----
-
-## 1. The Core Invariant: Check BEFORE Install
-
-The foundational rule of BOB is: **Scanning after installation is too late.**
-
-When an AI coding agent runs `pip install` or `npm install`:
-- **npm lifecycle scripts** (`preinstall`, `install`, `postinstall`) execute arbitrary shell code *during* the download and unpacking phase. A malicious package can exfiltrate `.env` secrets or SSH keys before the command even returns.
-- **Python sdist packages** run `setup.py` / build backend hooks during wheel construction at install time.
-- Traditional audit tools (`pip-audit`, `npm audit`, OSV-scanner) only inspect lockfiles or installed packages **after** installation has already completed and untrusted code has run.
-
-```
-Traditional Audit (Too Late):
-[Agent Request] ──► [Install Runs + Malicious Code Executes ⚠️] ──► [Audit Scans Lockfile ❌]
-
-BOB Pre-Install Invariant:
-[Agent Request] ──► [BOB Intercept & Static Heuristics 🛡️] ──► [BLOCKED / No Code Runs ✅]
-```
-
-### Static Inspection Guarantee
-BOB intercepts the installation request **before** the package manager executes. It fetches package metadata and archive bytes directly over HTTPS using `httpx` and parses them statically (`ast.parse` in Python; AST/JSON parsing in npm). **BOB never invokes `pip install`, `npm install`, `exec`, or `eval` on candidate packages.**
+This document describes the design, threat model, and components of BOB (`bouncer-on-board`).
 
 ---
 
-## 2. Path 1: `bob intercept` (Live Pre-Execution Gate)
+## 1. Check before install
 
-Path 1 executes synchronously on every pending tool-use command or file read. To avoid slowing down developer vibe-coding loops, Path 1 runs **strictly deterministic checks** with a target latency of **< 400 ms** (caching registry responses in `.bob/cache/`). **No LLM calls occur on this path.**
+Scanning after installation is too late.
 
-### Interception Sequence Diagram
+When an agent runs `pip install` or `npm install`:
+- npm lifecycle scripts (`preinstall`, `install`, `postinstall`) run arbitrary shell code during unpacking. A malicious package can exfiltrate secrets before the command returns.
+- Python sdist packages run `setup.py` and build backend hooks during wheel construction.
+- Traditional audit tools (`pip-audit`, `npm audit`, OSV-scanner) only inspect lockfiles after installation finishes and untrusted code has already executed.
+
+```
+Traditional audit (too late):
+[Agent Request] -> [Install runs, malicious code executes] -> [Audit scans lockfile]
+
+BOB pre-install gate:
+[Agent Request] -> [BOB intercepts, inspects statically] -> [Blocked: no code runs]
+```
+
+### Static inspection guarantee
+BOB intercepts the installation request before the package manager executes. It fetches package metadata and archive bytes directly over HTTPS using `httpx` and parses them statically (`ast.parse` in Python, AST/JSON parsing in npm). BOB never runs `pip install`, `npm install`, `exec`, or `eval` on candidate packages.
+
+---
+
+## 2. Pre-execution gate (`bob intercept`)
+
+The pre-execution gate runs synchronously on every pending tool command or file read. To avoid slowing down development loops, it runs deterministic checks only, targeting latency under 400ms (caching registry responses in `.bob/cache/`). No language model calls occur on this path.
+
+### Interception sequence
 
 ```mermaid
 sequenceDiagram
@@ -55,49 +55,52 @@ sequenceDiagram
   end
 ```
 
-### Static Gate Heuristic Signals
-Each package evaluated by `pkg/gate.py` collects weighted risk signals:
-1. **Registry 404 (Hard Block):** Package does not exist on PyPI/npm (catches agent hallucinations).
-2. **OSV Malicious Advisories (Hard Block):** Package flagged in OSV `MAL-*` database.
-3. **Age Heuristic:** Packages < 14 days old score +35 to +50 points.
-4. **Typosquatting:** Levenshtein distance $\le 2$ to top-N downloaded packages scores +40 points.
-5. **LLM Tropes:** Popular package names with suffixes/prefixes like `-utils`, `-helper`, `-ai`, `-gpt` score +20 points.
-6. **Provenance Check:** Missing homepage or source repository link scores +15 points.
-7. **Install Script Static AST Inspection:** Base64 decode feeding `exec`/`eval`, mass `os.environ` reads, or exfiltration URLs score +60 points.
+### Risk signals
+Packages evaluated by `pkg/gate.py` are scored across several signals:
+1. Missing package on registry (hard block): Catches hallucinated package names.
+2. OSV malicious advisories (hard block): Flagged in the OSV malicious database.
+3. Package age: Packages under 14 days old score +35 to +50 points.
+4. Typosquatting: Levenshtein distance <= 2 from top-downloaded packages scores +40 points.
+5. Hallucination tropes: Popular names combined with `-utils`, `-helper`, `-ai`, or `-gpt` score +20 points.
+6. Missing provenance: Missing homepage or repository link scores +15 points.
+7. Install scripts: Decoded `exec`/`eval`, mass environment variable reads, or hardcoded URLs in setup scripts score +60 points.
 
-**Decision Thresholds:** Score $\ge 70 \rightarrow$ Block (exit 2); $30\text{--}69 \rightarrow$ Warn (exit 0, log warning); $< 30 \rightarrow$ Allow (exit 0).
+Decision thresholds:
+- Score >= 70: Block (exit code 2)
+- Score 30 to 69: Warn (exit code 0, warning logged)
+- Score < 30: Allow (exit code 0)
 
-### Stable Rule IDs & Output Message Formats
-All deterministic findings emit standardized rule identifiers that upstream testing harnesses and IDE extensions assert on:
+### Rule identifiers
 
 | Rule ID | Category | Default Action | Description |
 |:---|:---|:---|:---|
-| `PKG-NOT-FOUND` | package | Block (Exit 2) | Package does not exist on PyPI/npm (hallucination) |
-| `PKG-MALICIOUS-ADVISORY` | package | Block (Exit 2) | Listed in OSV `MAL-*` malicious package reports |
-| `PKG-TOO-NEW` | package | Warn (Exit 0) | Package published < 14 days ago |
-| `PKG-TYPOSQUAT` | package | Block (Exit 2) | Levenshtein distance $\le 2$ to top-N ecosystem packages |
+| `PKG-NOT-FOUND` | package | Block (Exit 2) | Package does not exist on PyPI/npm (likely hallucinated) |
+| `PKG-MALICIOUS-ADVISORY` | package | Block (Exit 2) | Listed in OSV malicious package reports |
+| `PKG-TOO-NEW` | package | Warn (Exit 0) | Package published under 14 days ago |
+| `PKG-TYPOSQUAT` | package | Block (Exit 2) | Distance <= 2 to popular ecosystem packages |
 | `PKG-LLM-TROPE` | package | Block (Exit 2) | Hallucinated trope suffix (e.g. `-utils`, `-helper`, `-ai`) |
-| `PKG-NO-PROVENANCE` | package | Warn (Exit 0) | Missing repository / homepage metadata |
-| `PKG-INSTALL-SCRIPT` | package | Block (Exit 2) | Decoded `exec`/`eval`, exfiltration, or secret reads in setup |
-| `GUARD-SENSITIVE-PATH` | guard | Block (Exit 2) | Direct agent read/write of `.env`, `.ssh/`, `*.pem`, etc. |
+| `PKG-NO-PROVENANCE` | package | Warn (Exit 0) | Missing repository or homepage metadata |
+| `PKG-INSTALL-SCRIPT` | package | Block (Exit 2) | Suspicious script execution or credential reads in setup |
+| `GUARD-SENSITIVE-PATH` | guard | Block (Exit 2) | Direct agent read/write of `.env`, `.ssh/`, `*.pem` |
 | `GUARD-BOB-SELF-PROTECT` | guard | Block (Exit 2) | Agent attempts to modify `.bob/` or call `bob allow` |
-| `INJ-001` … `INJ-020` | injection | Block (Exit 2) | Instruction overrides, zero-width tags, or secret exfiltration phrases |
+| `INJ-001` to `INJ-020` | injection | Block (Exit 2) | Instruction overrides or secret exfiltration phrases |
 
-#### Standardized Terminal Message Format
-To protect against secondary injection, terminal outputs to IDE agents follow strict, immutable templates:
+#### Terminal message format
+To protect against secondary injection, messages sent back to the agent use fixed templates:
+
 ```text
 BOB BLOCKED [BOB-0007] rule=PKG-NOT-FOUND package=fastapi-jwt-session
-Reason: package does not exist on PyPI (likely hallucinated).
+Reason: Package 'fastapi-jwt-session' does not exist on PYPI (likely AI hallucinated / slopsquatting vector).
 Do: remove it, ask the user, or pick a verified package. Do not retry this install.
 ```
 
 ---
 
-## 3. Path 2: `bob scan` (Pre-Deploy Security Gate)
+## 3. Pre-deploy security gate (`bob scan`)
 
-Path 2 runs before code is committed or deployed. It orchestrates parallel deterministic scanners, normalizes outputs into SARIF, and feeds flagged findings into **local Gemma 4 (via Ollama)** for plain-English triage, false-positive down-ranking, and patch generation.
+The pre-deploy gate runs before code is committed or merged. It coordinates parallel scanners, normalizes output into SARIF, and feeds findings to the AI provider for triage and patch generation.
 
-### Pre-Deploy Gate Flowchart
+### Scan workflow
 
 ```mermaid
 flowchart TD
@@ -117,9 +120,9 @@ flowchart TD
     Dedupe["Fingerprint Deduplicator"]
   end
 
-  subgraph AI ["Local SLM Triage (Ollama)"]
-    Probe{"Ollama Available?"}
-    Gemma["Gemma 4 E2B (~5.1B params)<br/>(Explain, Triage Low/Med, Propose Diffs)"]
+  subgraph AI ["AI Triage (IDE Native or Ollama)"]
+    Probe{"AI Available?"}
+    Gemma["AI Triage<br/>(Explain, Triage Low/Med, Propose Diffs)"]
     Fallback["Static Rule Templates<br/>(Deterministic Fallback)"]
   end
 
@@ -146,16 +149,16 @@ flowchart TD
   GateCheck -- Yes --> Fail
 ```
 
-### Local SLM Triage & Verification Loop
-- **Privacy & Local-First:** All model inferences run against `http://localhost:11434`. No source code or secrets leave the local machine.
-- **Strict Evidence Wrapping:** Untrusted code snippets sent to Gemma are wrapped in `<untrusted>...</untrusted>` tags to mitigate indirect prompt injection. Secrets are masked (`first 4 chars + ****`) before prompting.
-- **Verification Command:** Suggested patches are never auto-applied. Developers review patches manually and prove resolution using `bob verify <fingerprint-prefix>`.
+### Triage and verification
+- Privacy: When using `ide_native` or local Ollama, code stays local. No source files leave your machine.
+- Safe prompting: Code snippets sent to models are wrapped in `<untrusted>...</untrusted>` tags to prevent indirect prompt injection. Secrets are masked before prompting.
+- Manual review: Suggested patches are never applied automatically. Developers review diffs and verify fixes with `bob verify <fingerprint-prefix>`.
 
 ---
 
-## 4. The 3-Tier Defense-in-Depth Model
+## 4. Defense-in-depth model
 
-To prevent single-point bypasses, BOB establishes three complementary interception layers:
+BOB uses three complementary interception layers:
 
 ```mermaid
 flowchart LR
@@ -184,19 +187,19 @@ flowchart LR
   L2 -.->|Failsafe| L3
 ```
 
-| Layer | Mechanism | Coverage | Known Bypass / Gap | Mitigation |
+| Layer | Mechanism | Coverage | Gap | Mitigation |
 |:---|:---|:---|:---|:---|
-| **L1: IDE Hook** | IDE pre-tool-use extension | Agent shell executions, tool invocations, and file reads | Not all IDEs expose pre-tool execution hooks | Fall back to L2 PATH shims + advisory skill |
-| **L2: PATH Shims** | `bob shim install` creates wrapper scripts earlier on PATH | Terminal installs (`pip`, `npm`, `uv`) | `python -m pip` bypasses binary shims | L1 intercepts `-m pip`; L3 catches on commit |
-| **L3: CI Gate** | GitHub Action / Pre-commit hook | Entire repository state prior to merge | Runs late by design | Enforces repository-level merge block |
+| Layer 1: IDE Hook | IDE pre-tool-use extension | Shell commands, tool invocations, and file reads | Requires IDE hook support | Falls back to Layer 2 PATH shims |
+| Layer 2: PATH Shims | Wrapper scripts in `~/.bob/shims` placed first on PATH | Terminal installs (`pip`, `npm`, `yarn`, `uv`) | `python -m pip` bypasses wrapper shims | Layer 1 catches command strings; Layer 3 catches on commit |
+| Layer 3: CI Gate | GitHub Action or pre-commit hook | Entire repository prior to merge | Runs late | Enforces repository-level merge block |
 
 ---
 
-## 5. Security Axioms & Self-Protection
+## 5. Security rules and invariants
 
-1. **Deterministic tools detect; AI triages and explains.** The model never detects vulnerabilities from scratch and cannot hallucinate a pass.
-2. **The LLM can be attacked.** The SLM can **never** suppress or lower `critical` or `high` findings, and cannot approve packages. Every down-rank of medium/low findings is explicitly logged for human review.
-3. **Messages to IDE agents use fixed templates.** BOB never echoes raw untrusted input or freeform LLM output back to the agent CLI, preventing secondary prompt injection.
-4. **BOB protects itself.** Agent actions attempting to write to `.bob/` or execute `bob allow` are blocked with rule `GUARD-BOB-SELF-PROTECT`. Allowlisting is human-only.
-5. **Honest Posture:** If zero tripwires fire, BOB outputs the exact sentence:
+1. Deterministic tools detect; AI triages and explains. The model never detects vulnerabilities from scratch and cannot hallucinate a pass.
+2. The AI can be adversarial. The AI model can never suppress or lower Critical or High findings, and cannot approve packages. Any down-ranking of Medium or Low findings is logged for human review.
+3. Messages to agents use fixed templates. BOB never echoes raw untrusted input or freeform model output back to the terminal, preventing secondary prompt injection.
+4. BOB protects itself. Agent actions attempting to write to `.bob/` or run `bob allow` are blocked with rule `GUARD-BOB-SELF-PROTECT`. Allowlisting is strictly a human decision.
+5. Honest reporting. If zero tripwires fire, BOB outputs:
    > *"0 known deterministic tripwires hit. This does not guarantee the absence of business-logic vulnerabilities."*
