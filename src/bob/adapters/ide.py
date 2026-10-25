@@ -82,12 +82,12 @@ def get_skill_content() -> str:
 
     return """---
 name: bob
-description: "Zero-Trust IDE Agent Firewall & Security Gatekeeper. Inspects packages before download to block slopsquatting, scans code for secrets with native IDE AI triage, guards instructions against prompt injection, and manages automatic terminal shims."
+description: "Zero-trust IDE firewall and security gatekeeper. Inspects packages before download to block slopsquatting and malicious install scripts, scans code for secrets with native IDE AI triage, guards against prompt injection, and manages automatic terminal shims."
 argument-hint: "bob scan [path] | bob check <pypi|npm> <package> | bob guard <file> | bob doctor | bob protect"
 user-invocable: true
 ---
 
-# BOB (Bouncer-on-Board) — Zero-Trust IDE Agent Firewall
+# BOB: Zero-Trust IDE Agent Firewall
 Use `/bob scan`, `/bob check <pypi|npm> <pkg>`, `/bob guard <file>`, `/bob doctor`, or `/bob protect`.
 """
 
