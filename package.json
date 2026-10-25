@@ -1,0 +1,42 @@
+{
+  "name": "bouncer-on-board",
+  "version": "0.1.0",
+  "description": "Zero-Trust IDE Agent Firewall & Security Gatekeeper",
+  "bin": {
+    "bouncer-on-board": "./bin/bob.js",
+    "bob": "./bin/bob.js"
+  },
+  "files": [
+    "bin",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "start": "node bin/bob.js",
+    "test": "node bin/bob.js --version"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shouryasingh2311/bouncer-on-board.git"
+  },
+  "keywords": [
+    "security",
+    "ai-agent",
+    "firewall",
+    "gatekeeper",
+    "supply-chain",
+    "slopsquatting",
+    "claude-code",
+    "antigravity",
+    "cursor",
+    "pre-tool-use"
+  ],
+  "author": "WYTE <shouryasingh2311@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/shouryasingh2311/bouncer-on-board/issues"
+  },
+  "homepage": "https://github.com/shouryasingh2311/bouncer-on-board#readme"
+}

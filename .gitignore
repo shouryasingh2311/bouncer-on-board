@@ -35,6 +35,7 @@ htmlcov/
 # IDE & Local Workspace Hooks
 .vscode/
 .idea/
+.cursor/
 *.swp
 *.swo
 .agents/

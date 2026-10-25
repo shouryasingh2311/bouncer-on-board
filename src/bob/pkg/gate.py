@@ -68,7 +68,7 @@ def evaluate_package(
             source="bob-pkg-gate",
             category="package",
             severity="critical",
-            title="Package not found on registry",
+            title="Package not found on registry (slopsquatting risk)",
             file=None,
             line=None,
             evidence=f"{eco}:{pkg}",
@@ -76,7 +76,7 @@ def evaluate_package(
         return Decision(
             action="block",
             score=100,
-            reasons=[f"Package '{pkg}' does not exist on {eco.upper()} (likely hallucinated)."],
+            reasons=[f"Package '{pkg}' does not exist on {eco.upper()} (likely AI hallucinated / slopsquatting vector)."],
             findings=[f],
         )
 

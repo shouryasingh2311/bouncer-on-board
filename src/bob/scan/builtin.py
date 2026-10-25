@@ -11,9 +11,21 @@ from bob.models import Finding, mask_secret
 
 SECRET_PATTERNS = [
     (
+        r"\b(sk-ant-[a-zA-Z0-9_\-]{32,})\b",
+        "BUILTIN-SECRET-ANTHROPIC",
+        "Anthropic API key hardcoded",
+        "critical",
+    ),
+    (
         r"\b(sk-[a-zA-Z0-9_\-]{20,})\b",
         "BUILTIN-SECRET-API-KEY",
         "OpenAI / AI provider API key hardcoded",
+        "critical",
+    ),
+    (
+        r"\b(AIza[0-9A-Za-z_\-]{35})\b",
+        "BUILTIN-SECRET-GCP-API",
+        "Google Cloud API key hardcoded",
         "critical",
     ),
     (
@@ -35,9 +47,33 @@ SECRET_PATTERNS = [
         "critical",
     ),
     (
+        r"\b(sk_live_[0-9a-zA-Z]{24,})\b",
+        "BUILTIN-SECRET-STRIPE",
+        "Stripe live secret key hardcoded",
+        "critical",
+    ),
+    (
+        r"\b(xox[baprs]-[0-9a-zA-Z]{10,48})\b",
+        "BUILTIN-SECRET-SLACK",
+        "Slack token hardcoded",
+        "critical",
+    ),
+    (
         r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
         "BUILTIN-SECRET-PRIVATE-KEY",
         "Embedded unencrypted private key",
+        "critical",
+    ),
+    (
+        r"\b(eyJ[a-zA-Z0-9_\-]{10,}\.eyJ[a-zA-Z0-9_\-]{10,}\.[a-zA-Z0-9_\-]{10,})\b",
+        "BUILTIN-SECRET-JWT",
+        "Hardcoded JSON Web Token (JWT)",
+        "high",
+    ),
+    (
+        r"(?i)\b(postgres|postgresql|mysql|mongodb|redis)://[^:\s]+:([^@\s]+)@",
+        "BUILTIN-SECRET-CONN-STRING",
+        "Database connection string with hardcoded password",
         "critical",
     ),
     (
@@ -65,6 +101,12 @@ CODE_PATTERNS = [
         r"(?i)(verify\s*=\s*false|rejectunauthorized\s*:\s*false)",
         "BUILTIN-CODE-TLS-DISABLED",
         "TLS/SSL certificate verification disabled",
+        "high",
+    ),
+    (
+        r"(?i)subprocess\.(run|Popen|call|check_output)\s*\(.*shell\s*=\s*True",
+        "BUILTIN-CODE-SHELL-TRUE",
+        "Subprocess execution with shell=True (command injection risk)",
         "high",
     ),
     (

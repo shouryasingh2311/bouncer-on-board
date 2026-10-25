@@ -19,4 +19,4 @@ def test_cli_doctor_runs() -> None:
     assert result.exit_code == 0
     assert "BOB System Diagnostics" in result.stdout
     assert "Python" in result.stdout
-    assert "Ollama Service" in result.stdout
+    assert "AI Mode" in result.stdout

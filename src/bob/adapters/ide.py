@@ -67,6 +67,73 @@ def configure_claude_code(shims_dir: Optional[Path] = None) -> List[Path]:
     return install_shims(s_dir)
 
 
+def get_skill_content() -> str:
+    """Load universal SKILL.md content from disk or fallback template."""
+    candidates = [
+        Path(__file__).resolve().parent.parent.parent.parent / "skills" / "bob" / "SKILL.md",
+        Path(__file__).resolve().parent.parent / "data" / "SKILL.md",
+    ]
+    for p in candidates:
+        if p.is_file():
+            try:
+                return p.read_text(encoding="utf-8")
+            except Exception:
+                pass
+
+    return """---
+name: bob
+description: "Zero-Trust IDE Agent Firewall & Security Gatekeeper. Inspects packages before download to block slopsquatting, scans code for secrets with native IDE AI triage, guards instructions against prompt injection, and manages automatic terminal shims."
+argument-hint: "bob scan [path] | bob check <pypi|npm> <package> | bob guard <file> | bob doctor | bob protect"
+user-invocable: true
+---
+
+# BOB (Bouncer-on-Board) — Zero-Trust IDE Agent Firewall
+Use `/bob scan`, `/bob check <pypi|npm> <pkg>`, `/bob guard <file>`, `/bob doctor`, or `/bob protect`.
+"""
+
+
+def install_skill_files(target_dir: Path, target_ide: str = "all") -> List[Path]:
+    """Deploy universal bob skill to target IDE skill/rules directories."""
+    installed: List[Path] = []
+    content = get_skill_content()
+    ide_choice = target_ide.lower().strip()
+
+    # 1. Antigravity Skill (~/.gemini/config/skills/bob/SKILL.md)
+    if ide_choice in ("all", "antigravity"):
+        try:
+            ag_skill_dir = Path.home() / ".gemini" / "config" / "skills" / "bob"
+            ag_skill_dir.mkdir(parents=True, exist_ok=True)
+            ag_file = ag_skill_dir / "SKILL.md"
+            ag_file.write_text(content, encoding="utf-8")
+            installed.append(ag_file)
+        except Exception:
+            pass
+
+    # 2. Claude Code Skill (~/.claude/skills/bob/SKILL.md)
+    if ide_choice in ("all", "claude"):
+        try:
+            claude_skill_dir = Path.home() / ".claude" / "skills" / "bob"
+            claude_skill_dir.mkdir(parents=True, exist_ok=True)
+            claude_file = claude_skill_dir / "SKILL.md"
+            claude_file.write_text(content, encoding="utf-8")
+            installed.append(claude_file)
+        except Exception:
+            pass
+
+    # 3. Cursor Rules (.cursor/rules/bob.mdc)
+    if ide_choice in ("all", "cursor"):
+        try:
+            cursor_dir = target_dir / ".cursor" / "rules"
+            cursor_dir.mkdir(parents=True, exist_ok=True)
+            cursor_file = cursor_dir / "bob.mdc"
+            cursor_file.write_text(content, encoding="utf-8")
+            installed.append(cursor_file)
+        except Exception:
+            pass
+
+    return installed
+
+
 def protect_workspace(
     target_dir: Path, target_ide: str = "all"
 ) -> Dict[str, Any]:
@@ -103,7 +170,12 @@ def protect_workspace(
             f"Global PATH wrapper shims installed in {get_default_shims_dir()}"
         )
 
-    # 4. Initialize workspace .bob directory
+    # 4. Deploy universal IDE skills
+    skills_installed = install_skill_files(resolved_dir, ide_choice)
+    for s in skills_installed:
+        results["actions"].append(f"Universal BOB skill installed at {s}")
+
+    # 5. Initialize workspace .bob directory
     bob_dir = resolved_dir / ".bob"
     bob_dir.mkdir(parents=True, exist_ok=True)
     allowlist_file = bob_dir / "allowlist.yaml"

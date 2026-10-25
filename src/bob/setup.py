@@ -107,12 +107,13 @@ def run_setup_wizard(console: Console) -> None:
         Panel(
             "[bold white]Welcome to the BOB Security & Intelligence Setup Assistant![/bold white]\n\n"
             "BOB protects your IDE agents against prompt injections, credential exfiltration,\n"
-            "and hallucinated packages. It uses AI to triage security findings with remediation\n"
-            "advice, with seamless fallback to built-in rules.\n\n"
+            "and hallucinated packages (slopsquatting). It inspects code and packages using\n"
+            "deterministic rules, with optional AI triage for remediation advice.\n\n"
             "[bold cyan]Select an intelligence mode:[/bold cyan]\n"
-            "  [bold cyan]1[/bold cyan] Local AI via Ollama ([green]Recommended[/green] - Private, Free, Gemma)\n"
-            "  [bold cyan]2[/bold cyan] Cloud AI via API Key (Gemini, Gemma endpoint, or OpenAI)\n"
-            "  [bold cyan]3[/bold cyan] Pure Deterministic Mode (Zero setup - 100% built-in local rules)",
+            "  [bold cyan]1[/bold cyan] IDE-Native AI ([green]Recommended for IDE Skills[/green] - Zero Config, uses active IDE agent)\n"
+            "  [bold cyan]2[/bold cyan] Local AI via Ollama (Private, Free, Gemma)\n"
+            "  [bold cyan]3[/bold cyan] Cloud AI via API Key (Gemini, OpenAI, Groq, OpenRouter)\n"
+            "  [bold cyan]4[/bold cyan] Pure Deterministic Mode (Zero setup - 100% built-in local AST/regex rules)",
             title="[bold cyan]BOB Setup[/bold cyan]",
             border_style="cyan",
         )
@@ -120,7 +121,7 @@ def run_setup_wizard(console: Console) -> None:
 
     choice = Prompt.ask(
         "Choose an option",
-        choices=["1", "2", "3"],
+        choices=["1", "2", "3", "4"],
         default="1",
         console=console,
     )
@@ -128,14 +129,24 @@ def run_setup_wizard(console: Console) -> None:
     cfg = load_config()
 
     if choice == "1":
+        console.print("\n[bold cyan]Configuring IDE-Native AI Mode...[/bold cyan]")
+        cfg.ai_provider = "ide_native"
+        cfg.model = "ide_native"
+        cfg_path = save_config(cfg)
+        console.print(f"[bold green]Configuration saved to {cfg_path}[/bold green]")
+        console.print("[green]BOB configured for IDE-native AI! Zero external API keys or background services needed.[/green]")
+        console.print("[dim]Your host IDE agent (Claude Code, Google Antigravity, Cursor) will interpret BOB's structured findings directly in chat.[/dim]")
+
+    elif choice == "2":
         console.print("\n[bold cyan]Configuring Local AI (Ollama + Gemma)...[/bold cyan]")
         if not is_ollama_installed():
             console.print("[yellow]Ollama was not detected on your system PATH.[/yellow]")
             console.print("To use local Gemma:")
             console.print("  1. Download and install Ollama from: [bold underline]https://ollama.com[/bold underline]")
             console.print("  2. Run [bold]bob setup[/bold] again after installation.")
-            console.print("\n[green]Configuring BOB in deterministic mode for now (built-in rules active).[/green]")
-            cfg.ai_provider = "deterministic"
+            console.print("\n[green]Configuring BOB in IDE-native mode for now.[/green]")
+            cfg.ai_provider = "ide_native"
+            cfg.model = "ide_native"
             save_config(cfg)
             return
 
@@ -195,7 +206,7 @@ def run_setup_wizard(console: Console) -> None:
         console.print(f"\n[bold green]Configuration successfully saved to {cfg_path}[/bold green]")
         console.print(f"Model: [bold cyan]{cfg.model}[/bold cyan] via [bold]{cfg.ollama_url}[/bold]")
 
-    elif choice == "2":
+    elif choice == "3":
         console.print(
             Panel(
                 "[bold cyan]Select Cloud AI Platform:[/bold cyan]\n\n"
@@ -268,7 +279,7 @@ def run_setup_wizard(console: Console) -> None:
         console.print(f"Provider: [bold cyan]{provider_name}[/bold cyan] | Model: [bold cyan]{model_name}[/bold cyan]")
 
     else:
-        # Choice 3: Deterministic
+        # Choice 4: Deterministic
         console.print("\n[bold cyan]Configuring Pure Deterministic Mode...[/bold cyan]")
         cfg.ai_provider = "deterministic"
         cfg.model = "deterministic"

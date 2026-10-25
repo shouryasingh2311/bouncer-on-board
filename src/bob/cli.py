@@ -99,7 +99,13 @@ def doctor() -> None:
     ai_provider = cfg.ai_provider.lower()
     needs_setup_prompt = False
 
-    if ai_provider == "deterministic":
+    if ai_provider == "ide_native":
+        table.add_row(
+            "AI Mode",
+            "[green]IDE-Native[/green]",
+            "Host IDE agent handles chat triage (Zero external AI calls / Zero token cost)",
+        )
+    elif ai_provider == "deterministic":
         table.add_row(
             "AI Mode",
             "[green]Active[/green]",
@@ -212,6 +218,33 @@ def doctor() -> None:
             "semgrep",
             "[dim]Missing (Optional)[/dim]",
             "Built-in AST/regex tripwires will be used",
+        )
+    # Node.js runtime check
+    node_path = shutil.which("node")
+    if node_path:
+        table.add_row("Node.js", "[green]Installed[/green]", node_path)
+    else:
+        table.add_row(
+            "Node.js",
+            "[dim]Missing (Optional)[/dim]",
+            "Needed only for npx/npm global command",
+        )
+
+    # Layer 2 PATH Shims check
+    from bob.adapters.shim import get_default_shims_dir
+    shims_dir = get_default_shims_dir()
+    if shims_dir.exists() and any(shims_dir.iterdir()):
+        shim_count = len(list(shims_dir.iterdir()))
+        table.add_row(
+            "Layer 2 Shims",
+            "[green]Active[/green]",
+            f"{shim_count} interceptors in {shims_dir}",
+        )
+    else:
+        table.add_row(
+            "Layer 2 Shims",
+            "[yellow]Not Installed[/yellow]",
+            "Run 'bob protect' to configure automatic terminal protection",
         )
 
     console.print(table)

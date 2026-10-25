@@ -17,7 +17,7 @@ def test_axiom2_cannot_downrank_critical_or_high() -> None:
 
 
 def test_triage_findings_ollama_offline() -> None:
-    cfg = Config()
+    cfg = Config(ai_provider="ollama")
     f = Finding(
         id="BOB-0001",
         rule_id="BUILTIN-SECRET-API-KEY",
@@ -42,7 +42,7 @@ def test_triage_findings_ollama_offline() -> None:
 
 
 def test_triage_findings_axiom2_blocks_critical_downgrade() -> None:
-    cfg = Config()
+    cfg = Config(ai_provider="ollama")
     f = Finding(
         id="BOB-0001",
         rule_id="BUILTIN-CODE-SQL-INJECTION",
@@ -73,7 +73,7 @@ def test_triage_findings_axiom2_blocks_critical_downgrade() -> None:
 
 
 def test_triage_findings_allows_medium_downgrade() -> None:
-    cfg = Config()
+    cfg = Config(ai_provider="ollama")
     f = Finding(
         id="BOB-0002",
         rule_id="BUILTIN-CODE-OPEN-CORS",
@@ -100,3 +100,26 @@ def test_triage_findings_allows_medium_downgrade() -> None:
     assert downranked_count == 1
     assert f.ai is not None
     assert f.ai.verdict == "likely_false_positive"
+
+
+def test_triage_findings_ide_native() -> None:
+    cfg = Config(ai_provider="ide_native")
+    f = Finding(
+        id="BOB-0003",
+        rule_id="BUILTIN-SECRET-ANTHROPIC",
+        source="bob-builtin",
+        category="secret",
+        severity="critical",
+        title="Anthropic API key exposed",
+        file="agent.py",
+        line=4,
+        evidence="sk-ant-api03-xxxx",
+    )
+
+    findings, model_display, explained_count, downranked_count = triage_findings([f], cfg)
+    assert "IDE Native" in model_display
+    assert explained_count == 1
+    assert downranked_count == 0
+    assert f.ai is not None
+    assert f.ai.model == "ide-native"
+    assert f.severity == "critical"

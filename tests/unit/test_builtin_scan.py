@@ -72,3 +72,36 @@ def test_scan_directory_with_vulnerabilities(tmp_path: Path) -> None:
     assert len(findings) >= 2
     categories = {f.category for f in findings}
     assert "secret" in categories
+
+
+def test_scan_extended_secrets() -> None:
+    stripe_prefix = "sk_live_"
+    slack_prefix = "xoxb-"
+    anthropic_prefix = "sk-ant-"
+    gcp_prefix = "AIza"
+    content = f"""
+    anthropic = "{anthropic_prefix}api03-abcdef1234567890abcdef1234567890"
+    gcp_key = "{gcp_prefix}SyAbcdef1234567890abcdef12345678901"
+    stripe_key = "{stripe_prefix}51Abcdef1234567890abcdef1234567890"
+    slack_token = "{slack_prefix}123456789012-123456789012-abcdef1234567890"
+    db_uri = "postgres://admin:supersecret@db.prod.internal:5432/mydb"
+    """
+    findings = scan_file_content("keys.py", content)
+    rule_ids = {f.rule_id for f in findings}
+    assert "BUILTIN-SECRET-ANTHROPIC" in rule_ids
+    assert "BUILTIN-SECRET-GCP-API" in rule_ids
+    assert "BUILTIN-SECRET-STRIPE" in rule_ids
+    assert "BUILTIN-SECRET-SLACK" in rule_ids
+    assert "BUILTIN-SECRET-CONN-STRING" in rule_ids
+
+
+def test_scan_shell_true() -> None:
+    content = """
+    import subprocess
+    def run_cmd(user_arg):
+        subprocess.run(f"echo {user_arg}", shell=True)
+    """
+    findings = scan_file_content("runner.py", content)
+    rule_ids = {f.rule_id for f in findings}
+    assert "BUILTIN-CODE-SHELL-TRUE" in rule_ids
+

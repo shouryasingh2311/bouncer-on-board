@@ -41,7 +41,9 @@ def triage_findings(
     is_ai_ready = False
     model_display = "deterministic templates"
 
-    if ai_provider == "deterministic":
+    if ai_provider == "ide_native":
+        model_display = "IDE Native AI (host agent triages in chat)"
+    elif ai_provider == "deterministic":
         model_display = "deterministic templates (zero-token mode)"
     elif ai_provider == "ollama":
         is_ai_ready, _ = check_ollama_status(config.ollama_url, config.model)
@@ -101,6 +103,8 @@ def triage_findings(
 
         # Fallback to deterministic template
         finding.ai = get_fallback_triage(finding)
+        if ai_provider == "ide_native":
+            finding.ai.model = "ide-native"
         explained_count += 1
 
     return findings, model_display, explained_count, downranked_count
