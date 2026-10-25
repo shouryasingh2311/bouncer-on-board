@@ -306,7 +306,13 @@ Examples:
 
 function forwardToPythonBob(bobExe, args) {
   // Normalize command aliases: 'check' -> 'check-install'
-  const normalizedArgs = args.map((a) => (a === 'check' ? 'check-install' : a));
+  const normalizedArgs = args.map((a) => {
+    let val = a === 'check' ? 'check-install' : a;
+    if (process.platform === 'win32' && typeof val === 'string' && val.includes('"')) {
+      val = val.replace(/"/g, '\\"');
+    }
+    return val;
+  });
 
   if (bobExe.path) {
     const child = spawn(bobExe.path, normalizedArgs, { stdio: 'inherit' });
