@@ -3,7 +3,7 @@
 from pathlib import Path
 from typer.testing import CliRunner
 
-from bob.adapters.antigravity import configure_antigravity_hook, get_hooks_config
+from bob.adapters.ide import configure_antigravity_hook, get_hooks_config
 from bob.adapters.shim import install_shims, uninstall_shims
 from bob.cli import app
 

@@ -84,7 +84,7 @@ def main(
 def doctor() -> None:
     """Report available scanners, Ollama connection, configured model, and system environment."""
     if sys.stdout.isatty():
-        print_banner(console, include_subtitle=False)
+        print_banner(console)
     cfg = load_config()
 
     table = Table(title="[bold cyan]BOB System Diagnostics (Doctor)[/bold cyan]")

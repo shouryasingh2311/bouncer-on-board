@@ -33,9 +33,6 @@ class Config:
         """Get base npm registry URL taking into account registry overrides."""
         return self.registry_overrides.get("npm", "https://registry.npmjs.org").rstrip("/")
 
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
-
 
 def find_config_path() -> Optional[Path]:
     """Resolve configuration file path from environment or default locations.
@@ -113,5 +110,5 @@ def save_config(cfg: Config, path: Optional[Path] = None) -> Path:
     target_path = path or (Path.cwd() / ".bob" / "config.yaml")
     target_path.parent.mkdir(parents=True, exist_ok=True)
     with open(target_path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(cfg.to_dict(), f, sort_keys=False)
+        yaml.safe_dump(asdict(cfg), f, sort_keys=False)
     return target_path
