@@ -50,4 +50,11 @@ htmlcov/
 # Planning & local scratch
 .planning/
 
+# Environment & Credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
 
