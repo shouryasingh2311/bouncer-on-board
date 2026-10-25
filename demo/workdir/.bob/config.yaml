@@ -1,0 +1,12 @@
+# BOB configuration for demo workdir pointing to local mock registry
+model: gemma4:e2b
+ollama_url: http://localhost:11434
+min_package_age_days: 14
+offline_policy: warn
+registry_overrides:
+  pypi: http://127.0.0.1:8765/pypi
+  npm: http://127.0.0.1:8765/npm
+sensitive_paths_extra: []
+fail_gate_on:
+  - critical
+  - high

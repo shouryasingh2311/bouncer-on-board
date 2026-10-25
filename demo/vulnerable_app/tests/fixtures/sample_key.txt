@@ -1,0 +1,2 @@
+# DECOY test credential fixture
+SAMPLE_KEY=sk-test-sample-fixture-token-not-a-real-secret-112233
