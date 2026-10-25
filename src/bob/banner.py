@@ -18,11 +18,7 @@ BOB_BANNER_ASCII = r"""
 +----------------------------------------------------------------+
 """
 
-SUBTITLE = "bouncer-on-board"
-TAGLINE = "I'm Gate keeping"
-
-
-def print_banner(console: Console, include_subtitle: bool = True) -> None:
+def print_banner(console: Console) -> None:
     """Print ASCII art banner if output stream is an interactive terminal."""
     if not sys.stdout.isatty():
         return

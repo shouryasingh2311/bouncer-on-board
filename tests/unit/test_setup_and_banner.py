@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from bob.banner import BOB_BANNER_ASCII, SUBTITLE, print_banner
+from bob.banner import BOB_BANNER_ASCII, print_banner
 from bob.cli import app
 from bob.config import Config, load_config, save_config
 from bob.setup import run_setup_wizard
@@ -15,7 +15,7 @@ runner = CliRunner()
 
 def test_ascii_banner_content() -> None:
     assert "____" in BOB_BANNER_ASCII
-    assert "bouncer-on-board" in SUBTITLE
+    assert "bouncer-on-board" in BOB_BANNER_ASCII
     assert "+---" in BOB_BANNER_ASCII  # Box border
     assert "Gate keeping" in BOB_BANNER_ASCII
     for line in BOB_BANNER_ASCII.splitlines():

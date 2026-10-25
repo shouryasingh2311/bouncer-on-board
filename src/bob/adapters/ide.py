@@ -6,13 +6,35 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from bob.adapters.antigravity import configure_antigravity_hook
 from bob.adapters.shim import get_default_shims_dir, install_shims
+
+
+def get_hooks_config() -> Dict[str, Any]:
+    """Return standard PreToolUse hook configuration for Antigravity IDE."""
+    return {
+        "PreToolUse": [
+            {
+                "command": "bob",
+                "args": ["intercept", "--adapter", "antigravity"],
+            }
+        ]
+    }
 
 
 def configure_antigravity(target_dir: Path) -> Path:
     """Register Antigravity IDE PreToolUse hook (.agents/hooks.json)."""
-    return configure_antigravity_hook(target_dir)
+    agents_dir = target_dir / ".agents"
+    agents_dir.mkdir(parents=True, exist_ok=True)
+    hooks_file = agents_dir / "hooks.json"
+
+    data = get_hooks_config()
+    with open(hooks_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+    return hooks_file
+
+
+configure_antigravity_hook = configure_antigravity
 
 
 def configure_vscode_cursor(
@@ -69,16 +91,12 @@ def configure_claude_code(shims_dir: Optional[Path] = None) -> List[Path]:
 
 def get_skill_content() -> str:
     """Load universal SKILL.md content from disk or fallback template."""
-    candidates = [
-        Path(__file__).resolve().parent.parent.parent.parent / "skills" / "bob" / "SKILL.md",
-        Path(__file__).resolve().parent.parent / "data" / "SKILL.md",
-    ]
-    for p in candidates:
-        if p.is_file():
-            try:
-                return p.read_text(encoding="utf-8")
-            except Exception:
-                pass
+    skill_file = Path(__file__).resolve().parent.parent.parent.parent / "skills" / "bob" / "SKILL.md"
+    if skill_file.is_file():
+        try:
+            return skill_file.read_text(encoding="utf-8")
+        except Exception:
+            pass
 
     return """---
 name: bob

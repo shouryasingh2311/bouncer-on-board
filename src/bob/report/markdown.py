@@ -25,11 +25,7 @@ def calculate_risk_points(counts: Dict[str, int]) -> int:
 def count_severities(findings: List[Finding]) -> Dict[str, int]:
     counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     for f in findings:
-        sev = f.severity.lower()
-        if sev in counts:
-            counts[sev] += 1
-        else:
-            counts["info"] += 1
+        counts[f.severity.lower() if f.severity.lower() in counts else "info"] += 1
     return counts
 
 
