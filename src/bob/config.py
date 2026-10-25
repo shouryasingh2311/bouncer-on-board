@@ -23,7 +23,7 @@ class Config:
         default_factory=lambda: ["critical", "high"]
     )
     api_key: Optional[str] = None
-    ai_provider: str = "ollama"  # ollama | cloud | deterministic
+    ai_provider: str = "ide_native"  # ide_native | ollama | cloud | deterministic
 
     def get_pypi_base_url(self) -> str:
         """Get base PyPI URL taking into account registry overrides."""

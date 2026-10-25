@@ -51,38 +51,34 @@ Vibe-coding agents ship fast, but they blindly install hallucinated packages, tr
 
 ## ⚡ 60-Second Quickstart
 
-### Quick Install (One-Liner)
+### 1. Instant Install via NPX (Zero Setup)
+Install BOB globally or deploy it directly into your current workspace:
+
+```bash
+# Interactive setup & universal IDE skill deployment:
+npx bouncer-on-board install
+
+# Or install globally via npm:
+npm install -g bouncer-on-board
+bob doctor
+```
+
+### 2. Python Quick Install
 ```bash
 pip install git+https://github.com/shouryasingh2311/bouncer-on-board.git
 bob doctor
 ```
 
-### Prerequisites
-- Python 3.10+
-- [Ollama](https://ollama.com/) running locally: `ollama run gemma4:e2b` (Optional, for local SLM triage) or Google Gemini / OpenAI API key.
+### 3. Universal IDE Skill (`/bob`)
+Once installed, BOB operates natively inside your preferred IDE via slash commands:
 
-### Windows (PowerShell)
-```powershell
-# (Run once if script execution is restricted: Set-ExecutionPolicy -Scope Process Bypass)
-git clone https://github.com/shouryasingh2311/bouncer-on-board.git; cd bouncer-on-board
-python -m venv .venv; .venv\Scripts\Activate.ps1
-pip install -e .
-bob doctor
-bob check-install pypi requests
-bob scan src --no-ai
-```
+| IDE / Environment | How BOB Integrates | Primary Slash Commands |
+|:---|:---|:---|
+| **Claude Code** | Global Skill (`~/.claude/skills/bob/SKILL.md`) + PATH shims | `/bob scan`, `/bob check <pypi\|npm> <pkg>`, `/bob doctor` |
+| **Google Antigravity** | Workspace Skill (`~/.gemini/config/skills/bob/SKILL.md`) + PreToolUse Hook | `/bob scan`, `/bob check <pypi\|npm> <pkg>`, `/bob protect` |
+| **Cursor / VS Code** | Cursor Rules (`.cursor/rules/bob.mdc`) + Terminal Environment shims | `/bob scan`, `/bob guard <file>`, `/bob doctor` |
 
-### macOS / Linux (Bash)
-```bash
-git clone https://github.com/shouryasingh2311/bouncer-on-board.git && cd bouncer-on-board
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
-bob doctor
-bob check-install pypi requests
-bob scan src --no-ai
-```
-
-> **Deterministic Fallback by Design:** If Ollama or Cloud AI is offline, BOB automatically falls back to static rule explanation templates. BOB **never** crashes or fails closed into silence.
+> **💡 Zero-Token IDE-Native AI:** When used as an IDE skill, external AI endpoints (Ollama, Gemini, OpenAI) are completely optional (`ai_provider: "ide_native"`). The host IDE's active AI model (Claude 3.7, Gemini 2.5, GPT-4o) directly reviews BOB's structured findings and generates patches in chat!
 
 ---
 
@@ -410,7 +406,7 @@ To measure the real-world utility of the small language model, BOB was benchmark
 
 - [Architecture & Diagrams](docs/architecture.md) — Comprehensive sequence and component flowcharts
 - [Verified Quickstart Run](docs/quickstart-verified.md) — Local execution traces and reproducible proof
-- [Agent Guard Skill](skills/bob-install-guard/SKILL.md) — Spec-compliant advisory agent skill
+- [Universal Agent Skill](skills/bob/SKILL.md) — Universal slash command skill for Claude Code, Cursor, and Antigravity
 - [Third-Party Notices](THIRD_PARTY_NOTICES.md) — Tool licenses, model terms, and dataset attributions
 - [Contributing Guide](CONTRIBUTING.md) — Development setup, testing, and adding detection rules
 - [License](LICENSE) — MIT License

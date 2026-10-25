@@ -55,11 +55,27 @@ def test_config_save_and_reload(tmp_path: Path) -> None:
     assert loaded.api_key == "sk-test-key"
 
 
+def test_setup_wizard_ide_native_choice(tmp_path: Path, monkeypatch) -> None:
+    mock_console = MagicMock()
+    cfg_path = tmp_path / "config.yaml"
+
+    responses = iter(["1", "5"])
+    monkeypatch.setattr("bob.setup.Prompt.ask", lambda *args, **kwargs: next(responses))
+    monkeypatch.setattr("bob.setup.load_config", lambda: Config())
+    monkeypatch.setattr("bob.setup.save_config", lambda c: save_config(c, cfg_path))
+
+    run_setup_wizard(mock_console)
+
+    loaded = load_config(cfg_path)
+    assert loaded.ai_provider == "ide_native"
+    assert loaded.model == "ide_native"
+
+
 def test_setup_wizard_deterministic_choice(tmp_path: Path, monkeypatch) -> None:
     mock_console = MagicMock()
     cfg_path = tmp_path / "config.yaml"
 
-    responses = iter(["3", "5"])
+    responses = iter(["4", "5"])
     monkeypatch.setattr("bob.setup.Prompt.ask", lambda *args, **kwargs: next(responses))
     monkeypatch.setattr("bob.setup.load_config", lambda: Config())
     monkeypatch.setattr("bob.setup.save_config", lambda c: save_config(c, cfg_path))
@@ -75,7 +91,7 @@ def test_setup_wizard_cloud_choice(tmp_path: Path, monkeypatch) -> None:
     mock_console = MagicMock()
     cfg_path = tmp_path / "config.yaml"
 
-    responses = iter(["2", "gemini", "my-secret-key", "gemini-1.5-flash", "5"])
+    responses = iter(["3", "gemini", "my-secret-key", "gemini-1.5-flash", "5"])
     monkeypatch.setattr("bob.setup.Prompt.ask", lambda *args, **kwargs: next(responses))
     monkeypatch.setattr("bob.setup.load_config", lambda: Config())
     monkeypatch.setattr("bob.setup.save_config", lambda c: save_config(c, cfg_path))
