@@ -1,101 +1,225 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" width="100%" height="100%" style="background: transparent; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+<svg viewBox="0 0 1120 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="architecture-title architecture-desc" style="background:#f5f5f5; font-family:'Geist', -apple-system, BlinkMacSystemFont, sans-serif;">
+  <title id="architecture-title">BOB Dual-Boundary Security Architecture</title>
+  <desc id="architecture-desc">Architecture diagram showing pre-execution gate with command unwrapping, sensitive guards, and package inspection, alongside pre-deploy security scanner.</desc>
+  
   <defs>
-    <!-- Background Gradients -->
-    <linearGradient id="archBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0b0f19" />
-      <stop offset="100%" stop-color="#060911" />
-    </linearGradient>
-    <linearGradient id="boxGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#10192e" />
-      <stop offset="100%" stop-color="#0c1322" />
-    </linearGradient>
-    <linearGradient id="boxGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0e1e2d" />
-      <stop offset="100%" stop-color="#09141f" />
-    </linearGradient>
-    <linearGradient id="cyanLine" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#06b6d4" />
-      <stop offset="100%" stop-color="#3b82f6" />
-    </linearGradient>
-    <linearGradient id="emeraldLine" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#10b981" />
-      <stop offset="100%" stop-color="#06b6d4" />
-    </linearGradient>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap');
+    </style>
+    <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.9" fill="rgba(45,49,66,0.08)"/>
+    </pattern>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/>
+    </marker>
+    <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#bf4520"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#2e7d32"/>
+    </marker>
   </defs>
 
-  <!-- Container Outline -->
-  <rect x="2" y="2" width="956" height="326" rx="14" fill="url(#archBg)" stroke="#1e293b" stroke-width="1.5" />
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#f5f5f5"/>
+  <rect width="100%" height="100%" fill="url(#dots)" opacity="0.6"/>
 
-  <!-- Title Header -->
-  <g transform="translate(32, 28)">
-    <rect x="0" y="2" width="4" height="20" rx="2" fill="url(#cyanLine)" />
-    <text x="14" y="17" fill="#f8fafc" font-size="15" font-weight="700" letter-spacing="0.3">BOB DUAL-BOUNDARY SECURITY ARCHITECTURE</text>
-    <text x="14" y="35" fill="#64748b" font-size="11.5">Two defense checkpoints ensuring malicious code is stopped before execution and before deployment</text>
-  </g>
+  <!-- ================= ZONES ================= -->
 
-  <!-- Left: Source Agent Box -->
-  <g transform="translate(32, 85)">
-    <rect x="0" y="0" width="170" height="215" rx="10" fill="url(#boxGrad1)" stroke="#334155" stroke-width="1" />
-    <!-- Terminal Icon -->
-    <rect x="20" y="22" width="36" height="36" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1" />
-    <text x="28" y="45" fill="#38bdf8" font-size="16" font-family="monospace">&gt;_</text>
-    <text x="20" y="80" fill="#f1f5f9" font-size="13.5" font-weight="700">Autonomous</text>
-    <text x="20" y="98" fill="#f1f5f9" font-size="13.5" font-weight="700">Coding Agent</text>
-    <text x="20" y="122" fill="#94a3b8" font-size="11">Claude Code</text>
-    <text x="20" y="138" fill="#94a3b8" font-size="11">Antigravity</text>
-    <text x="20" y="154" fill="#94a3b8" font-size="11">Cursor / VS Code</text>
-    <text x="20" y="186" fill="#64748b" font-size="10.5">Terminal &amp; Tool Calls</text>
-  </g>
+  <!-- Zone: Boundary 1 (Top) -->
+  <rect x="230" y="40" width="850" height="255" rx="8"
+        fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
+  <rect x="250" y="44" width="250" height="14" rx="2" fill="#f5f5f5"/>
+  <text x="375" y="55" fill="#5a6580" font-size="7.5" font-family="'Geist Mono', monospace"
+        text-anchor="middle" letter-spacing="0.14em">BOUNDARY 1: PRE-EXECUTION GATE</text>
 
-  <!-- Path Lines (Connecting Left to Right) -->
-  <path d="M 202 140 H 250 V 135 H 260" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="4,3" />
-  <path d="M 202 245 H 250 V 250 H 260" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="4,3" />
+  <!-- Zone: Boundary 2 (Bottom) -->
+  <rect x="230" y="320" width="850" height="215" rx="8"
+        fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
+  <rect x="250" y="324" width="240" height="14" rx="2" fill="#f5f5f5"/>
+  <text x="370" y="335" fill="#5a6580" font-size="7.5" font-family="'Geist Mono', monospace"
+        text-anchor="middle" letter-spacing="0.14em">BOUNDARY 2: PRE-DEPLOY SCANNER</text>
 
-  <!-- Right Top Card: Path 1 bob intercept -->
-  <g transform="translate(260, 85)">
-    <rect x="0" y="0" width="668" height="98" rx="10" fill="url(#boxGrad2)" stroke="#0284c7" stroke-width="1.2" />
-    
-    <!-- Path 1 Badge -->
-    <rect x="18" y="14" width="135" height="22" rx="4" fill="#0369a1" />
-    <text x="85" y="29" fill="#e0f2fe" font-size="11" font-weight="700" text-anchor="middle" font-family="monospace">PATH 1: INTERCEPT</text>
+  <!-- ================= CONNECTORS ================= -->
 
-    <!-- Latency Badge -->
-    <rect x="160" y="14" width="95" height="22" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="0.8" />
-    <text x="207" y="29" fill="#38bdf8" font-size="10.5" font-weight="600" text-anchor="middle">LATENCY &lt; 400ms</text>
+  <!-- Agent to Boundary 1 -->
+  <path d="M 200,240 H 215 Q 223,240 223,232 V 133 Q 223,125 231,125 H 248"
+        fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+  
+  <!-- Agent to Boundary 2 -->
+  <path d="M 200,310 H 215 Q 223,310 223,318 V 402 Q 223,410 231,410 H 248"
+        fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-    <!-- Main Title & Desc -->
-    <text x="18" y="55" fill="#f8fafc" font-size="13" font-weight="700">Pre-Execution Interception Gate (`bob intercept`)</text>
-    <text x="18" y="73" fill="#94a3b8" font-size="11">Synchronous hook inspecting package age, typosquat distance, archive AST, and sensitive paths (.env, .ssh).</text>
+  <!-- Top Path: Shims to Unwrapper -->
+  <line x1="405" y1="125" x2="448" y2="125" stroke="#bf4520" stroke-width="1.3" marker-end="url(#arrow-accent)"/>
 
-    <!-- Outcome Pill -->
-    <g transform="translate(525, 32)">
-      <rect x="0" y="0" width="125" height="34" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1" />
-      <text x="62" y="15" fill="#10b981" font-size="10" font-weight="700" text-anchor="middle">ALLOW (Exit 0)</text>
-      <text x="62" y="28" fill="#ef4444" font-size="10" font-weight="700" text-anchor="middle">BLOCK (Exit 2)</text>
-    </g>
-  </g>
+  <!-- Unwrapper to Sensitive Guards -->
+  <path d="M 625,110 H 641 Q 649,110 649,102 V 103 Q 649,95 657,95 H 668"
+        fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-  <!-- Right Bottom Card: Path 2 bob scan -->
-  <g transform="translate(260, 200)">
-    <rect x="0" y="0" width="668" height="100" rx="10" fill="url(#boxGrad1)" stroke="#059669" stroke-width="1.2" />
-    
-    <!-- Path 2 Badge -->
-    <rect x="18" y="14" width="115" height="22" rx="4" fill="#047857" />
-    <text x="75" y="29" fill="#ecfdf5" font-size="11" font-weight="700" text-anchor="middle" font-family="monospace">PATH 2: SCAN</text>
+  <!-- Unwrapper to Package Gate -->
+  <path d="M 625,140 H 641 Q 649,140 649,148 V 187 Q 649,195 657,195 H 668"
+        fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-    <!-- AI Badge -->
-    <rect x="140" y="14" width="125" height="22" rx="4" fill="#0f172a" stroke="#059669" stroke-width="0.8" />
-    <text x="202" y="29" fill="#34d399" font-size="10.5" font-weight="600" text-anchor="middle">IDE-NATIVE / ZERO-TOKEN</text>
+  <!-- Guards/Gate to Allowed -->
+  <line x1="860" y1="95" x2="928" y2="95" stroke="#2e7d32" stroke-width="1.2" marker-end="url(#arrow-green)"/>
 
-    <!-- Main Title & Desc -->
-    <text x="18" y="55" fill="#f8fafc" font-size="13" font-weight="700">Pre-Deploy Security Gate (`bob scan`)</text>
-    <text x="18" y="73" fill="#94a3b8" font-size="11">Parallel tripwires (Gitleaks, Semgrep, OSV, AST) with AI triage for plain-English explanations and fix diffs.</text>
+  <!-- Guards/Gate to Blocked -->
+  <line x1="860" y1="195" x2="928" y2="195" stroke="#bf4520" stroke-width="1.3" marker-end="url(#arrow-accent)"/>
 
-    <!-- Outcome Pill -->
-    <g transform="translate(525, 32)">
-      <rect x="0" y="0" width="125" height="34" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1" />
-      <text x="62" y="15" fill="#38bdf8" font-size="10" font-weight="700" text-anchor="middle">SARIF REPORT</text>
-      <text x="62" y="28" fill="#94a3b8" font-size="9.5" text-anchor="middle">AI Chat Triage</text>
-    </g>
-  </g>
+  <!-- Bottom Path: Git Repo to Scanners -->
+  <line x1="405" y1="410" x2="448" y2="410" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- Scanners to AI Triage -->
+  <line x1="625" y1="410" x2="668" y2="410" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- AI Triage to Pass -->
+  <line x1="860" y1="395" x2="928" y2="395" stroke="#2e7d32" stroke-width="1.2" marker-end="url(#arrow-green)"/>
+
+  <!-- AI Triage to Blocked -->
+  <path d="M 860,425 H 886 Q 894,425 894,433 V 457 Q 894,465 902,465 H 928"
+        fill="none" stroke="#bf4520" stroke-width="1.3" marker-end="url(#arrow-accent)"/>
+
+  <!-- Connector Labels -->
+  <rect x="207" y="170" width="34" height="11" rx="2" fill="#f5f5f5"/>
+  <text x="224" y="178" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">TOOL</text>
+
+  <rect x="207" y="348" width="34" height="11" rx="2" fill="#f5f5f5"/>
+  <text x="224" y="356" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">DIFF</text>
+
+  <rect x="412" y="113" width="32" height="11" rx="2" fill="#f5f5f5"/>
+  <text x="428" y="121" fill="#bf4520" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">RAW</text>
+
+  <rect x="876" y="83" width="38" height="11" rx="2" fill="#f5f5f5"/>
+  <text x="895" y="91" fill="#2e7d32" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">CLEAN</text>
+
+  <rect x="872" y="183" width="46" height="11" rx="2" fill="#f5f5f5"/>
+  <text x="895" y="191" fill="#bf4520" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle">TRIPWIRE</text>
+
+  <!-- ================= NODES ================= -->
+
+  <!-- Node 1: Autonomous Coding Agent -->
+  <rect x="40" y="200" width="160" height="150" rx="6" fill="#f5f5f5"/>
+  <rect x="40" y="200" width="160" height="150" rx="6" fill="rgba(79,93,117,0.06)" stroke="#4f5d75" stroke-width="1"/>
+  <rect x="50" y="210" width="42" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.40)" stroke-width="0.8"/>
+  <text x="71" y="219" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">SOURCE</text>
+  <text x="120" y="240" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Coding Agent</text>
+  <text x="120" y="258" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Claude Code · Antigravity</text>
+  <text x="120" y="272" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Cursor · Cline · OpenCode</text>
+  <line x1="55" y1="288" x2="185" y2="288" stroke="rgba(79,93,117,0.18)" stroke-width="0.8"/>
+  <text x="120" y="306" fill="#5a6580" font-size="8.5" text-anchor="middle">Invokes shell commands</text>
+  <text x="120" y="322" fill="#5a6580" font-size="8.5" text-anchor="middle">Writes code &amp; commit diffs</text>
+
+  <!-- Node 2: Hooks & Shims -->
+  <rect x="250" y="85" width="155" height="80" rx="6" fill="#f5f5f5"/>
+  <rect x="250" y="85" width="155" height="80" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+  <rect x="258" y="93" width="56" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+  <text x="286" y="102" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">INTERCEPT</text>
+  <text x="327" y="122" fill="#2d3142" font-size="11.5" font-weight="600" text-anchor="middle">Hooks &amp; Shims</text>
+  <text x="327" y="138" fill="#4f5d75" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">L1 IDE PreToolUse Hook</text>
+  <text x="327" y="152" fill="#4f5d75" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">L2 10 Package Manager Shims</text>
+
+  <!-- Node 3: Command Unwrapper -->
+  <rect x="450" y="85" width="175" height="80" rx="6" fill="#f5f5f5"/>
+  <rect x="450" y="85" width="175" height="80" rx="6" fill="rgba(191,69,32,0.06)" stroke="#bf4520" stroke-width="1"/>
+  <rect x="458" y="93" width="58" height="12" rx="2" fill="transparent" stroke="rgba(191,69,32,0.50)" stroke-width="0.8"/>
+  <text x="487" y="102" fill="#bf4520" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">PARSER</text>
+  <text x="537" y="122" fill="#2d3142" font-size="11.5" font-weight="600" text-anchor="middle">Command Unwrapper</text>
+  <text x="537" y="138" fill="#4f5d75" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">peel bash -c, sudo, env, pwsh</text>
+  <text x="537" y="152" fill="#4f5d75" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">PurePath executable normalize</text>
+
+  <!-- Node 4A: Sensitive Guards -->
+  <rect x="670" y="65" width="190" height="65" rx="6" fill="#f5f5f5"/>
+  <rect x="670" y="65" width="190" height="65" rx="6" fill="rgba(45,49,66,0.03)" stroke="#4f5d75" stroke-width="1"/>
+  <rect x="678" y="73" width="46" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.40)" stroke-width="0.8"/>
+  <text x="701" y="82" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GUARDS</text>
+  <text x="765" y="94" fill="#2d3142" font-size="11" font-weight="600" text-anchor="middle">Sensitive Path &amp; Pipe</text>
+  <text x="765" y="110" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">GUARD-ENV-DUMP · REMOTE-EXEC</text>
+  <text x="765" y="122" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">.env, .ssh, curl|bash, irm|iex</text>
+
+  <!-- Node 4B: Package Gate -->
+  <rect x="670" y="160" width="190" height="70" rx="6" fill="#f5f5f5"/>
+  <rect x="670" y="160" width="190" height="70" rx="6" fill="rgba(45,49,66,0.03)" stroke="#4f5d75" stroke-width="1"/>
+  <rect x="678" y="168" width="56" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.40)" stroke-width="0.8"/>
+  <text x="706" y="177" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GATEKEEPER</text>
+  <text x="765" y="193" fill="#2d3142" font-size="11" font-weight="600" text-anchor="middle">Pre-Install Package Gate</text>
+  <text x="765" y="209" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">OSV API · Static AST Inspect</text>
+  <text x="765" y="221" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">PKG-NOT-FOUND · TYPOSQUAT</text>
+
+  <!-- Node 5A: Execute Binary (Allowed) -->
+  <rect x="930" y="70" width="135" height="52" rx="6" fill="#f5f5f5"/>
+  <rect x="930" y="70" width="135" height="52" rx="6" fill="rgba(46,125,50,0.06)" stroke="#2e7d32" stroke-width="1"/>
+  <text x="997" y="93" fill="#2e7d32" font-size="11" font-weight="600" text-anchor="middle">Execute Binary</text>
+  <text x="997" y="109" fill="#2e7d32" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">EXIT 0 · Pass to System</text>
+
+  <!-- Node 5B: Execution Blocked (Focal Accent) -->
+  <rect x="930" y="160" width="135" height="70" rx="6" fill="#f5f5f5"/>
+  <rect x="930" y="160" width="135" height="70" rx="6" fill="rgba(191,69,32,0.12)" stroke="#bf4520" stroke-width="1.2"/>
+  <rect x="938" y="168" width="46" height="12" rx="2" fill="transparent" stroke="rgba(191,69,32,0.60)" stroke-width="0.8"/>
+  <text x="961" y="177" fill="#bf4520" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">BLOCKED</text>
+  <text x="997" y="198" fill="#111111" font-size="11.5" font-weight="700" text-anchor="middle">Execution Halted</text>
+  <text x="997" y="214" fill="#bf4520" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">EXIT 2 · Fixed Template</text>
+
+  <!-- Node 6: Git Workspace -->
+  <rect x="250" y="370" width="155" height="80" rx="6" fill="#f5f5f5"/>
+  <rect x="250" y="370" width="155" height="80" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+  <rect x="258" y="378" width="52" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+  <text x="284" y="387" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">TARGET</text>
+  <text x="327" y="407" fill="#2d3142" font-size="11.5" font-weight="600" text-anchor="middle">Workspace Target</text>
+  <text x="327" y="423" fill="#4f5d75" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Git working tree</text>
+  <text x="327" y="437" fill="#4f5d75" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Staged diffs &amp; files</text>
+
+  <!-- Node 7: Parallel Scanners -->
+  <rect x="450" y="370" width="175" height="80" rx="6" fill="#f5f5f5"/>
+  <rect x="450" y="370" width="175" height="80" rx="6" fill="rgba(45,49,66,0.03)" stroke="#4f5d75" stroke-width="1"/>
+  <rect x="458" y="378" width="56" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.40)" stroke-width="0.8"/>
+  <text x="486" y="387" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">SCANNERS</text>
+  <text x="537" y="407" fill="#2d3142" font-size="11.5" font-weight="600" text-anchor="middle">Parallel Scanners</text>
+  <text x="537" y="423" fill="#4f5d75" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">.bobignore deduplication</text>
+  <text x="537" y="437" fill="#4f5d75" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Gitleaks · Semgrep · Built-in</text>
+
+  <!-- Node 8: IDE-Native AI Triage -->
+  <rect x="670" y="370" width="190" height="80" rx="6" fill="#f5f5f5"/>
+  <rect x="670" y="370" width="190" height="80" rx="6" fill="rgba(45,49,66,0.03)" stroke="#4f5d75" stroke-width="1"/>
+  <rect x="678" y="378" width="58" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.40)" stroke-width="0.8"/>
+  <text x="707" y="387" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">AI TRIAGE</text>
+  <text x="765" y="407" fill="#2d3142" font-size="11.5" font-weight="600" text-anchor="middle">IDE-Native AI Triage</text>
+  <text x="765" y="423" fill="#4f5d75" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Host LLM explains findings</text>
+  <text x="765" y="437" fill="#4f5d75" font-size="8.5" font-family="'Geist Mono', monospace" text-anchor="middle">Critical/High immutable</text>
+
+  <!-- Node 9A: Gate Passed -->
+  <rect x="930" y="370" width="135" height="52" rx="6" fill="#f5f5f5"/>
+  <rect x="930" y="370" width="135" height="52" rx="6" fill="rgba(46,125,50,0.06)" stroke="#2e7d32" stroke-width="1"/>
+  <text x="997" y="393" fill="#2e7d32" font-size="11" font-weight="600" text-anchor="middle">Gate Passed</text>
+  <text x="997" y="409" fill="#2e7d32" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">EXIT 0 · Commit &amp; PR</text>
+
+  <!-- Node 9B: Gate Blocked (Focal Accent) -->
+  <rect x="930" y="440" width="135" height="65" rx="6" fill="#f5f5f5"/>
+  <rect x="930" y="440" width="135" height="65" rx="6" fill="rgba(191,69,32,0.12)" stroke="#bf4520" stroke-width="1.2"/>
+  <rect x="938" y="448" width="46" height="12" rx="2" fill="transparent" stroke="rgba(191,69,32,0.60)" stroke-width="0.8"/>
+  <text x="961" y="457" fill="#bf4520" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">BLOCKED</text>
+  <text x="997" y="476" fill="#111111" font-size="11" font-weight="700" text-anchor="middle">Deploy Blocked</text>
+  <text x="997" y="492" fill="#bf4520" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">EXIT 1 · Findings Present</text>
+
+  <!-- ================= LEGEND STRIP ================= -->
+  <line x1="40" y1="565" x2="1080" y2="565" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
+  <text x="40" y="582" fill="#4f5d75" font-size="7.5" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+  <rect x="110" y="574" width="14" height="10" rx="2" fill="rgba(191,69,32,0.12)" stroke="#bf4520" stroke-width="1"/>
+  <text x="132" y="582" fill="#4f5d75" font-size="8.5">Security Block / Focal</text>
+
+  <rect x="270" y="574" width="14" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+  <text x="292" y="582" fill="#4f5d75" font-size="8.5">Core Ingress / Shims</text>
+
+  <rect x="425" y="574" width="14" height="10" rx="2" fill="rgba(46,125,50,0.06)" stroke="#2e7d32" stroke-width="1"/>
+  <text x="447" y="582" fill="#4f5d75" font-size="8.5">Allowed / Passed</text>
+
+  <line x1="565" y1="579" x2="595" y2="579" stroke="#bf4520" stroke-width="1.3" marker-end="url(#arrow-accent)"/>
+  <text x="603" y="582" fill="#4f5d75" font-size="8.5">Enforcement Flow</text>
+
+  <line x1="730" y1="579" x2="760" y2="579" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <text x="768" y="582" fill="#4f5d75" font-size="8.5">Inspection Flow</text>
+
+  <line x1="885" y1="579" x2="915" y2="579" stroke="#2e7d32" stroke-width="1.2" marker-end="url(#arrow-green)"/>
+  <text x="923" y="582" fill="#4f5d75" font-size="8.5">Clean Execution</text>
 </svg>

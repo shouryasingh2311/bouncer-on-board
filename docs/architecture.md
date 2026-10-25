@@ -82,6 +82,8 @@ Decision thresholds:
 | `PKG-NO-PROVENANCE` | package | Warn (Exit 0) | Missing repository or homepage metadata |
 | `PKG-INSTALL-SCRIPT` | package | Block (Exit 2) | Suspicious script execution or credential reads in setup |
 | `GUARD-SENSITIVE-PATH` | guard | Block (Exit 2) | Direct agent read/write of `.env`, `.ssh/`, `*.pem` |
+| `GUARD-ENV-DUMP` | guard | Block (Exit 2) | Bulk environment variable secret dump (`printenv`, `export -p`, piped `env`) |
+| `GUARD-REMOTE-EXEC` | guard | Block (Exit 2) | Remote script fetching piped directly into shell (`curl ... \| bash`, `irm ... \| iex`) |
 | `GUARD-BOB-SELF-PROTECT` | guard | Block (Exit 2) | Agent attempts to modify `.bob/` or call `bob allow` |
 | `INJ-001` to `INJ-020` | injection | Block (Exit 2) | Instruction overrides or secret exfiltration phrases |
 
@@ -171,9 +173,9 @@ flowchart LR
 
   subgraph L2 ["Layer 2: PATH Shims"]
     direction TB
-    H2["pip / npm / uv Wrappers"]
-    C2["Catches: Any CLI install invocation"]
-    G2["Gap: python -m pip indirect calls"]
+    H2["10 Package Managers Shims<br/>pip, npm, npx, uv, pnpm, yarn, bun, poetry"]
+    C2["Catches: Any terminal install invocation"]
+    G2["Gap: Direct absolute interpreter calls without PATH"]
   end
 
   subgraph L3 ["Layer 3: CI / Pre-Commit"]
@@ -190,7 +192,7 @@ flowchart LR
 | Layer | Mechanism | Coverage | Gap | Mitigation |
 |:---|:---|:---|:---|:---|
 | Layer 1: IDE Hook | IDE pre-tool-use extension | Shell commands, tool invocations, and file reads | Requires IDE hook support | Falls back to Layer 2 PATH shims |
-| Layer 2: PATH Shims | Wrapper scripts in `~/.bob/shims` placed first on PATH | Terminal installs (`pip`, `npm`, `yarn`, `uv`) | `python -m pip` bypasses wrapper shims | Layer 1 catches command strings; Layer 3 catches on commit |
+| Layer 2: PATH Shims | Wrapper scripts in `~/.bob/shims` placed first on PATH | 10 CLI tools (`pip`, `pip3`, `npm`, `npx`, `uv`, `pnpm`, `yarn`, `bun`, `bunx`, `poetry`) | Non-PATH absolute binary calls | Layer 1 catches command strings; Layer 3 catches on commit |
 | Layer 3: CI Gate | GitHub Action or pre-commit hook | Entire repository prior to merge | Runs late | Enforces repository-level merge block |
 
 ---
@@ -203,3 +205,18 @@ flowchart LR
 4. BOB protects itself. Agent actions attempting to write to `.bob/` or run `bob allow` are blocked with rule `GUARD-BOB-SELF-PROTECT`. Allowlisting is strictly a human decision.
 5. Honest reporting. If zero tripwires fire, BOB outputs:
    > *"0 known deterministic tripwires hit. This does not guarantee the absence of business-logic vulnerabilities."*
+
+---
+
+## 6. Command parsing & recursive unwrapping
+
+Adversarial prompts and evasion scripts often wrap malicious installations inside subshells, elevated privileges, or environment prefixes:
+- `bash -c "pip install evil-pkg"`
+- `sudo npm install evil-pkg`
+- `powershell -Command "poetry add evil-pkg"`
+- `env DEBUG=1 /usr/local/bin/pip3 install evil-pkg`
+
+To defeat evasion:
+1. **Recursive Unwrapping** (`src/bob/cmdparse.py`): Recursively strips wrapping shells (`bash`, `sh`, `zsh`, `cmd`, `powershell`, `pwsh`), privilege elevators (`sudo`), and environment variables (`env VAR=val`).
+2. **Path Normalization**: Uses `PurePath.name` to resolve executable basenames so `/usr/bin/pip` and `C:\Python310\Scripts\pip.exe` normalize to `pip`.
+3. **Piped Stream Detection**: Intercepts and parses piped remote executions (`curl ... | bash`, `wget ... | sh`, `irm ... | iex`) to prevent in-memory remote code execution.
